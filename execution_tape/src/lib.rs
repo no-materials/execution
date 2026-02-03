@@ -67,6 +67,7 @@ pub(crate) mod bytecode;
 pub mod disasm;
 pub mod format;
 pub mod host;
+pub mod host_catalog;
 pub mod opcode;
 pub mod program;
 pub mod trace;
@@ -74,3 +75,5 @@ pub(crate) mod typed;
 pub mod value;
 pub mod verifier;
 pub mod vm;
+
+pub use host_catalog::{HostCatalog, HostCatalogError, HostSigRegistry, HostSpec};
