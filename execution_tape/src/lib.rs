@@ -75,5 +75,3 @@ pub(crate) mod typed;
 pub mod value;
 pub mod verifier;
 pub mod vm;
-
-pub use host_catalog::{HostCatalog, HostCatalogError, HostSigRegistry, HostSpec};
