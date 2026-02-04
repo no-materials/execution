@@ -577,6 +577,11 @@ pub enum ConstValue<'a> {
     Bytes(&'a [u8]),
     /// UTF-8 string constant (borrowed from the program constant pool).
     Str(&'a str),
+    /// Extern input constant (resolved at run start).
+    ExternInput {
+        id: crate::program::InputId,
+        symbol: Option<&'a str>,
+    },
 }
 
 #[cfg(any())]
@@ -924,6 +929,13 @@ fn const_pool_value<'a>(program: &'a Program, id: ConstId) -> Option<ConstValue<
         }),
         crate::program::ConstEntry::Bytes(_) => program.const_bytes(id).ok().map(ConstValue::Bytes),
         crate::program::ConstEntry::Str(_) => program.const_str(id).ok().map(ConstValue::Str),
+        crate::program::ConstEntry::ExternInput(input) => {
+            let symbol = program
+                .input_table
+                .get(input.0 as usize)
+                .and_then(|decl| program.symbol_str(decl.symbol).ok());
+            Some(ConstValue::ExternInput { id: *input, symbol })
+        }
     }
 }
 
@@ -1109,6 +1121,13 @@ fn fmt_const_value(f: &mut fmt::Formatter<'_>, v: ConstValue<'_>) -> fmt::Result
                 write!(f, "str[len={}] \"{}…\"", s.len(), shown.escape_default())
             } else {
                 write!(f, "str[len={}] \"{}\"", s.len(), shown.escape_default())
+            }
+        }
+        ConstValue::ExternInput { id, symbol } => {
+            if let Some(sym) = symbol {
+                write!(f, "input#{}(\"{sym}\")", id.0)
+            } else {
+                write!(f, "input#{}", id.0)
             }
         }
     }

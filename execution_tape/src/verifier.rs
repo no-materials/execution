@@ -1216,6 +1216,13 @@ fn verify_function_bytecode(
                         const_id: idx.0,
                     },
                 )?;
+                if matches!(c, ConstEntry::ExternInput(_)) {
+                    return Err(VerifyError::ConstOutOfBounds {
+                        func: func_id,
+                        pc: di.offset,
+                        const_id: idx.0,
+                    });
+                }
                 match const_value_type(c) {
                     ValueType::Unit => VerifiedInstr::ConstPoolUnit {
                         dst: map_unit(*dst)?,
@@ -2420,6 +2427,7 @@ fn const_value_type(c: &ConstEntry) -> ValueType {
         ConstEntry::Decimal { .. } => ValueType::Decimal,
         ConstEntry::Bytes(_) => ValueType::Bytes,
         ConstEntry::Str(_) => ValueType::Str,
+        ConstEntry::ExternInput(_) => ValueType::Unit,
     }
 }
 
@@ -3649,6 +3657,7 @@ mod tests {
             vec![HostSymbol { symbol: "x".into() }],
             vec![],
             vec![],
+            vec![],
             TypeTableDef::default(),
             vec![FunctionDef {
                 arg_types: vec![],
@@ -3668,6 +3677,7 @@ mod tests {
     #[test]
     fn verifier_rejects_missing_terminator() {
         let p = Program::new(
+            vec![],
             vec![],
             vec![],
             vec![],
@@ -3783,6 +3793,7 @@ mod tests {
     fn verifier_rejects_span_pc_past_end() {
         let p = Program::new(
             vec![],
+            vec![],
             vec![Const::Unit],
             vec![],
             TypeTableDef::default(),
@@ -3809,6 +3820,7 @@ mod tests {
             max_regs_per_function: 8,
         };
         let p = Program::new(
+            vec![],
             vec![],
             vec![],
             vec![],
@@ -3839,6 +3851,7 @@ mod tests {
         a.br(1, l0, l0);
         let bytecode = a.finish().unwrap();
         let p = Program::new(
+            vec![],
             vec![],
             vec![],
             vec![],
@@ -3876,6 +3889,7 @@ mod tests {
             vec![],
             vec![],
             vec![],
+            vec![],
             TypeTableDef::default(),
             vec![FunctionDef {
                 arg_types: vec![],
@@ -3906,6 +3920,7 @@ mod tests {
         bytecode.extend_from_slice(&[0x41, 0xFF, 0x01]); // jmp 255 (uleb128)
 
         let p = Program::new(
+            vec![],
             vec![],
             vec![],
             vec![],
@@ -3999,6 +4014,7 @@ mod tests {
             spans: vec![],
         };
         let p = Program::new(
+            vec![],
             vec![],
             vec![Const::Unit],
             vec![],

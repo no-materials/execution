@@ -43,6 +43,7 @@ fn golden_minimal_program_bytes_v0_0_1() {
         vec![],
         vec![],
         vec![],
+        vec![],
         TypeTableDef::default(),
         vec![FunctionDef {
             arg_types: vec![],
@@ -706,6 +707,7 @@ fn verifier_rejects_unknown_opcode() {
         vec![],
         vec![],
         vec![],
+        vec![],
         TypeTableDef::default(),
         vec![FunctionDef {
             arg_types: vec![],
@@ -753,6 +755,7 @@ fn roundtrip_decode_preserves_symbols_and_consts_shape() {
         vec![HostSymbol {
             symbol: "price.lookup".into(),
         }],
+        vec![],
         vec![Const::Bytes(vec![1, 2, 3]), Const::Str("hi".into())],
         vec![],
         TypeTableDef::default(),

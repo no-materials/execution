@@ -17,8 +17,8 @@ use crate::format::{write_sleb128_i64, write_uleb128_u64};
 use crate::host::HostSig;
 use crate::opcode::Opcode;
 use crate::program::{
-    Const, ConstId, ElemTypeId, FunctionDef, HostSigDef, HostSigId, HostSymbol, Program, SpanEntry,
-    StructTypeDef, SymbolId, TypeId, TypeTableDef, ValueType,
+    Const, ConstId, ElemTypeId, FunctionDef, HostSigDef, HostSigId, HostSymbol, InputDecl, InputId,
+    Program, SpanEntry, StructTypeDef, SymbolId, TypeId, TypeTableDef, ValueType,
 };
 use crate::value::Decimal;
 use crate::value::FuncId;
@@ -202,6 +202,7 @@ pub struct FunctionSig {
 #[derive(Clone, Debug, Default)]
 pub struct ProgramBuilder {
     symbols: Vec<HostSymbol>,
+    input_table: Vec<InputDecl>,
     const_pool: Vec<Const>,
     host_sigs: Vec<HostSigDef>,
     types: TypeTableDef,
@@ -224,6 +225,20 @@ impl ProgramBuilder {
         self.symbols.push(HostSymbol {
             symbol: symbol.into(),
         });
+        id
+    }
+
+    /// Interns an input declaration and returns its [`InputId`].
+    pub fn input(&mut self, symbol: SymbolId, ty: ValueType) -> InputId {
+        if let Some(i) = self
+            .input_table
+            .iter()
+            .position(|input| input.symbol == symbol && input.ty == ty)
+        {
+            return InputId(u32::try_from(i).unwrap_or(u32::MAX));
+        }
+        let id = InputId(u32::try_from(self.input_table.len()).unwrap_or(u32::MAX));
+        self.input_table.push(InputDecl { symbol, ty });
         id
     }
 
@@ -348,6 +363,7 @@ impl ProgramBuilder {
     pub fn build(self) -> Program {
         Program::new(
             self.symbols,
+            self.input_table,
             self.const_pool,
             self.host_sigs,
             self.types,
@@ -527,6 +543,7 @@ impl Asm {
     ) -> Result<AsmParts, AsmError> {
         let parts = self.finish_parts()?;
         let p = Program::new(
+            Vec::new(),
             Vec::new(),
             Vec::new(),
             Vec::new(),

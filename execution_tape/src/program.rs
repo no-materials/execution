@@ -61,6 +61,8 @@ pub enum Const {
     Bytes(Vec<u8>),
     /// UTF-8 string.
     Str(String),
+    /// Extern input reference (resolved at run start).
+    ExternInput(InputId),
 }
 
 /// A `(pc_delta, span_id)` mapping entry.
@@ -76,6 +78,10 @@ pub struct SpanEntry {
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct SymbolId(pub u32);
 
+/// Input table identifier (index into [`Program::input_table`]).
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub struct InputId(pub u32);
+
 /// Constant pool identifier (index into [`Program::const_pool`]).
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ConstId(pub u32);
@@ -83,6 +89,15 @@ pub struct ConstId(pub u32);
 /// Host signature identifier (index into [`Program::host_sigs`]).
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct HostSigId(pub u32);
+
+/// A program input declaration.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct InputDecl {
+    /// Input symbol id.
+    pub symbol: SymbolId,
+    /// Input value type.
+    pub ty: ValueType,
+}
 
 /// A byte range (offset/length) into a per-program arena buffer.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -179,6 +194,8 @@ pub struct Program {
     pub symbols: Vec<SymbolEntry>,
     /// Packed UTF-8 symbol data.
     pub symbol_data: String,
+    /// Program input table.
+    pub input_table: Vec<InputDecl>,
     /// Constant pool.
     pub const_pool: Vec<ConstEntry>,
     /// Packed blob arena for constant bytes.
@@ -223,6 +240,8 @@ pub enum ConstEntry {
     Bytes(ByteRange),
     /// UTF-8 string (range into [`Program::const_str_data`]).
     Str(ByteRange),
+    /// Extern input reference (index into [`Program::input_table`]).
+    ExternInput(InputId),
 }
 
 /// Type id index into [`TypeTable::structs`].
@@ -389,6 +408,7 @@ impl Program {
     #[must_use]
     pub fn new(
         symbols: Vec<HostSymbol>,
+        input_table: Vec<InputDecl>,
         const_pool: Vec<Const>,
         host_sigs: Vec<HostSigDef>,
         types: TypeTableDef,
@@ -430,6 +450,9 @@ impl Program {
                     let len = u32::try_from(s.len()).unwrap_or(u32::MAX);
                     const_str_data.push_str(s);
                     packed_consts.push(ConstEntry::Str(ByteRange { offset, len }));
+                }
+                Const::ExternInput(input) => {
+                    packed_consts.push(ConstEntry::ExternInput(*input));
                 }
             }
         }
@@ -510,6 +533,7 @@ impl Program {
         Self {
             symbols: packed_symbols,
             symbol_data,
+            input_table,
             const_pool: packed_consts,
             const_bytes_data,
             const_str_data,
@@ -632,6 +656,7 @@ impl Program {
         // Tags:
         // 1 = symbols
         // 2 = const_pool
+        // 9 = input_table (optional)
         // 3 = types
         // 4 = function_table
         // 5 = bytecode_blobs
@@ -656,6 +681,11 @@ impl Program {
             write_section(&mut w, SectionTag::Symbols, payload.as_slice());
         }
 
+        let has_extern_input = self
+            .const_pool
+            .iter()
+            .any(|c| matches!(c, ConstEntry::ExternInput(_)));
+
         // const pool section
         {
             let mut payload = Writer::new();
@@ -665,6 +695,21 @@ impl Program {
                 encode_const(&mut payload, c, &self.const_bytes_data, str_bytes);
             }
             write_section(&mut w, SectionTag::ConstPool, payload.as_slice());
+        }
+
+        // input table section (optional; required if extern inputs are present)
+        if !self.input_table.is_empty() || has_extern_input {
+            debug_assert!(
+                !has_extern_input || !self.input_table.is_empty(),
+                "extern input consts require a non-empty input_table"
+            );
+            let mut payload = Writer::new();
+            payload.write_uleb128_u64(self.input_table.len() as u64);
+            for input in &self.input_table {
+                payload.write_uleb128_u64(u64::from(input.symbol.0));
+                encode_value_type(&mut payload, input.ty);
+            }
+            write_section(&mut w, SectionTag::InputTable, payload.as_slice());
         }
 
         // types section
@@ -783,6 +828,7 @@ impl Program {
 enum SectionTag {
     Symbols = 1,
     ConstPool = 2,
+    InputTable = 9,
     Types = 3,
     FunctionTable = 4,
     BytecodeBlobs = 5,
@@ -796,6 +842,7 @@ impl SectionTag {
         match v {
             1 => Some(Self::Symbols),
             2 => Some(Self::ConstPool),
+            9 => Some(Self::InputTable),
             3 => Some(Self::Types),
             4 => Some(Self::FunctionTable),
             5 => Some(Self::BytecodeBlobs),
@@ -831,9 +878,23 @@ fn decode_symbols(payload: &[u8]) -> Result<(Vec<SymbolEntry>, String), DecodeEr
     Ok((symbols, symbol_data))
 }
 
+fn decode_input_table(payload: &[u8]) -> Result<Vec<InputDecl>, DecodeError> {
+    let mut r = Reader::new(payload);
+    let n = read_usize(&mut r)?;
+    let mut inputs = Vec::with_capacity(n);
+    for _ in 0..n {
+        let symbol =
+            SymbolId(u32::try_from(r.read_uleb128_u64()?).map_err(|_| DecodeError::OutOfBounds)?);
+        let ty = decode_value_type(&mut r)?;
+        inputs.push(InputDecl { symbol, ty });
+    }
+    Ok(inputs)
+}
+
 fn decode_current(bytes: &[u8], mut r: Reader<'_>) -> Result<Program, DecodeError> {
     let mut symbols: Vec<SymbolEntry> = Vec::new();
     let mut symbol_data: String = String::new();
+    let mut input_table: Vec<InputDecl> = Vec::new();
     let mut const_pool: Vec<ConstEntry> = Vec::new();
     let mut const_bytes_data: Vec<u8> = Vec::new();
     let mut const_str_data: String = String::new();
@@ -845,6 +906,7 @@ fn decode_current(bytes: &[u8], mut r: Reader<'_>) -> Result<Program, DecodeErro
     let mut span_tables: Vec<Vec<SpanEntry>> = Vec::new();
 
     let mut saw_symbols = false;
+    let mut saw_input_table = false;
     let mut saw_const_pool = false;
     let mut saw_host_sigs = false;
     let mut saw_types = false;
@@ -872,6 +934,13 @@ fn decode_current(bytes: &[u8], mut r: Reader<'_>) -> Result<Program, DecodeErro
                 saw_const_pool = true;
                 const_pool =
                     decode_const_pool(payload, &mut const_bytes_data, &mut const_str_data)?;
+            }
+            Some(SectionTag::InputTable) => {
+                if saw_input_table {
+                    return Err(DecodeError::DuplicateSection);
+                }
+                saw_input_table = true;
+                input_table = decode_input_table(payload)?;
             }
             Some(SectionTag::Types) => {
                 if saw_types {
@@ -961,6 +1030,15 @@ fn decode_current(bytes: &[u8], mut r: Reader<'_>) -> Result<Program, DecodeErro
             tag: SectionTag::HostSigs as u8,
         });
     }
+    if !saw_input_table
+        && const_pool
+            .iter()
+            .any(|c| matches!(c, ConstEntry::ExternInput(_)))
+    {
+        return Err(DecodeError::MissingSection {
+            tag: SectionTag::InputTable as u8,
+        });
+    }
 
     // Pack arenas.
     let mut bytecode_data: Vec<u8> = Vec::new();
@@ -1043,6 +1121,7 @@ fn decode_current(bytes: &[u8], mut r: Reader<'_>) -> Result<Program, DecodeErro
     Ok(Program {
         symbols,
         symbol_data,
+        input_table,
         const_pool,
         const_bytes_data,
         const_str_data,
@@ -1066,6 +1145,7 @@ enum ConstTag {
     Decimal = 5,
     Bytes = 6,
     Str = 7,
+    ExternInput = 8,
 }
 
 impl ConstTag {
@@ -1079,6 +1159,7 @@ impl ConstTag {
             5 => Ok(Self::Decimal),
             6 => Ok(Self::Bytes),
             7 => Ok(Self::Str),
+            8 => Ok(Self::ExternInput),
             _ => Err(DecodeError::OutOfBounds),
         }
     }
@@ -1124,6 +1205,10 @@ fn encode_const(w: &mut Writer, c: &ConstEntry, const_bytes: &[u8], const_str: &
             w.write_uleb128_u64(b.len() as u64);
             w.write_bytes(b);
         }
+        ConstEntry::ExternInput(input) => {
+            w.write_u8(ConstTag::ExternInput as u8);
+            w.write_uleb128_u64(u64::from(input.0));
+        }
     }
 }
 
@@ -1164,6 +1249,11 @@ fn decode_const_pool(
                 let len = u32::try_from(s.len()).map_err(|_| DecodeError::OutOfBounds)?;
                 const_str.push_str(s);
                 ConstEntry::Str(ByteRange { offset, len })
+            }
+            ConstTag::ExternInput => {
+                let input = u32::try_from(r.read_uleb128_u64()?)
+                    .map_err(|_| DecodeError::OutOfBounds)?;
+                ConstEntry::ExternInput(InputId(input))
             }
         };
         out.push(c);
@@ -1425,7 +1515,14 @@ mod tests {
                 HostSymbol {
                     symbol: "price.lookup".into(),
                 },
+                HostSymbol {
+                    symbol: "env.CONFIG.max_items".into(),
+                },
             ],
+            vec![InputDecl {
+                symbol: SymbolId(2),
+                ty: ValueType::I64,
+            }],
             vec![
                 Const::Unit,
                 Const::Bool(true),
@@ -1438,6 +1535,7 @@ mod tests {
                 },
                 Const::Bytes(vec![0, 1, 2, 3]),
                 Const::Str("hello".into()),
+                Const::ExternInput(InputId(0)),
             ],
             vec![],
             TypeTableDef {
@@ -1482,6 +1580,7 @@ mod tests {
             vec![HostSymbol { symbol: "x".into() }],
             vec![],
             vec![],
+            vec![],
             TypeTableDef::default(),
             vec![],
         );
@@ -1502,6 +1601,7 @@ mod tests {
             vec![HostSymbol { symbol: "x".into() }],
             vec![],
             vec![],
+            vec![],
             TypeTableDef::default(),
             vec![],
         );
@@ -1517,6 +1617,7 @@ mod tests {
     fn missing_function_table_is_rejected() {
         let p = Program::new(
             vec![HostSymbol { symbol: "x".into() }],
+            vec![],
             vec![],
             vec![],
             TypeTableDef::default(),
