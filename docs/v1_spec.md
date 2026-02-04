@@ -247,8 +247,10 @@ crate) can be built as adapters without adding any dependency to the `execution_
 - `6 = span_tables`
 - `7 = function_sigs`
 - `8 = host_sigs`
+- `9 = input_table` (optional; required if extern input consts are present)
 
-All of the above sections are required in v1.
+All of the above sections are required in v1, except `input_table` which is optional and only
+required if the program uses extern input constants.
 
 ## Symbols
 The symbol table stores host-call targets:
@@ -257,13 +259,55 @@ The symbol table stores host-call targets:
   - `len: ULEB128`
   - `utf8_bytes[len]`
 
+## Input table (optional)
+The input table declares program inputs that are bound at run start and then accessed as extern
+constants. Each input is identified by its index in this table (`InputId`).
+
+Format:
+- `count: ULEB128`
+- repeated `count` times:
+  - `symbol_id: ULEB128` (index into the `symbols` table)
+  - `value_type: ValueType` (see ValueType encoding)
+
+If the program contains any extern input constants, this section must be present.
+
+## Input snapshot (canonical encoding)
+An input snapshot is a runtime artifact used for deterministic replay. It is not stored in the
+program, but is encoded/decoded by embedders and tooling.
+
+Canonical encoding (ordered by `InputId`):
+- `count: ULEB128`
+- repeated `count` times:
+  - `const_tag: u8`
+  - `const_payload` (same encoding as constant pool entries, excluding `ExternInput`)
+
+The snapshot entry count must exactly match the program's `input_table` length. Each entry's
+decoded value type must match the corresponding `input_table` entry type.
+
 ## Constant pool
 The program constant pool stores immutable literals referenced by index:
 - `I64/U64/F64/Bool/Unit/Decimal`
 - `Bytes` (length + bytes)
 - `Str` (length + UTF-8 bytes)
+- `ExternInput` (input id, bound at run start)
 
 Aggregates are not required to be in the constant pool in v1 (they may be constructed at runtime), but may be added later.
+
+### Constant pool encoding (v1)
+Each entry is encoded as:
+- `const_tag: u8`
+- `const_payload` (depends on tag)
+
+Tags:
+- `0 Unit`
+- `1 Bool` (`imm_u8`, 0/1)
+- `2 I64` (`imm_sleb`)
+- `3 U64` (`imm_uleb`)
+- `4 F64` (`bits_u64le`)
+- `5 Decimal` (`mantissa_sleb`, `scale_u8`)
+- `6 Bytes` (`len_uleb`, `bytes[len]`)
+- `7 Str` (`len_uleb`, `utf8[len]`)
+- `8 ExternInput` (`input_id_uleb`, index into `input_table`)
 
 ## Types
 The type table defines struct layouts and array element types.
