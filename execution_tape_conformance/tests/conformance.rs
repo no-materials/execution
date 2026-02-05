@@ -6,6 +6,7 @@
 use execution_tape::aggregates::AggError;
 use execution_tape::asm::{Asm, FunctionSig, ProgramBuilder};
 use execution_tape::host::{Host, HostError, HostSig, SigHash, ValueRef};
+use execution_tape::inputs::{InputSnapshot, InputValue};
 use execution_tape::opcode::Opcode;
 use execution_tape::program::{
     Const, FunctionDef, HostSymbol, Program, StructTypeDef, TypeTableDef, ValueType,
@@ -187,6 +188,61 @@ fn roundtrip_verify_run_cmp_cast_select() {
         .run(&back, FuncId(0), &[], TraceMask::NONE, None)
         .unwrap();
     assert_eq!(out, vec![Value::I64(8)]);
+}
+
+#[test]
+fn roundtrip_verify_run_with_inputs() {
+    let mut pb = ProgramBuilder::new();
+    let sym_count = pb.symbol("count");
+    let sym_payload = pb.symbol("payload");
+    let sym_label = pb.symbol("label");
+
+    let in_count = pb.input(sym_count, ValueType::I64);
+    let in_payload = pb.input(sym_payload, ValueType::Bytes);
+    let in_label = pb.input(sym_label, ValueType::Str);
+
+    let c_count = pb.constant(Const::ExternInput(in_count));
+    let c_payload = pb.constant(Const::ExternInput(in_payload));
+    let c_label = pb.constant(Const::ExternInput(in_label));
+
+    let mut a = Asm::new();
+    a.const_pool(1, c_count);
+    a.const_i64(2, 5);
+    a.i64_add(3, 1, 2);
+    a.const_pool(4, c_payload);
+    a.bytes_len(5, 4);
+    a.const_pool(6, c_label);
+    a.str_len(7, 6);
+    a.ret(0, &[3, 5, 7]);
+
+    pb.push_function_checked(
+        a,
+        FunctionSig {
+            arg_types: vec![],
+            ret_types: vec![ValueType::I64, ValueType::U64, ValueType::U64],
+            reg_count: 8,
+        },
+    )
+    .unwrap();
+    let p = pb.build_verified().unwrap();
+
+    let bytes = p.program().encode();
+    let back = Program::decode(&bytes).unwrap();
+    let back = verify_owned(back);
+
+    let snapshot = InputSnapshot {
+        entries: vec![
+            InputValue::I64(12),
+            InputValue::Bytes(vec![1, 2, 3, 4]),
+            InputValue::Str("hi".into()),
+        ],
+    };
+
+    let mut vm = Vm::new(TestHost, Limits::default());
+    let out = vm
+        .run_with_snapshot(&back, FuncId(0), &[], &snapshot, TraceMask::NONE, None)
+        .unwrap();
+    assert_eq!(out, vec![Value::I64(17), Value::U64(4), Value::U64(2)]);
 }
 
 #[test]

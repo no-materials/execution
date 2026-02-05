@@ -18,9 +18,9 @@ Provide program-level inputs via const pool externs backed by an input_table, wi
 - [x] Phase 0: encoding decisions + spec deltas
 - [x] Phase 1: program model + serialization (input_table + extern const tag)
 - [x] Phase 2: inputs module (resolver, snapshot, canonical encoding)
-- [ ] Phase 3: VM integration (bind snapshot; const pool extern resolution)
-- [ ] Phase 4: verifier updates (extern const type checks)
-- [ ] Phase 5: tests + conformance coverage
+- [x] Phase 3: VM integration (bind snapshot; const pool extern resolution)
+- [x] Phase 4: verifier updates (extern const type checks)
+- [x] Phase 5: tests + conformance coverage
 
 ## Notes
 - Prefer const pool externs over entry-arg-only inputs.
