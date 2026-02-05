@@ -11,7 +11,7 @@
 use alloc::vec::Vec;
 
 use crate::program::HostSigId;
-use crate::program::{ConstId, ValueType};
+use crate::program::{ConstId, InputId, ValueType};
 use crate::program::{ElemTypeId, TypeId};
 use crate::value::FuncId;
 
@@ -227,6 +227,39 @@ pub(crate) enum VerifiedInstr {
     ConstPoolStr {
         dst: StrReg,
         idx: ConstId,
+    },
+
+    ConstInputUnit {
+        dst: UnitReg,
+        input: InputId,
+    },
+    ConstInputBool {
+        dst: BoolReg,
+        input: InputId,
+    },
+    ConstInputI64 {
+        dst: I64Reg,
+        input: InputId,
+    },
+    ConstInputU64 {
+        dst: U64Reg,
+        input: InputId,
+    },
+    ConstInputF64 {
+        dst: F64Reg,
+        input: InputId,
+    },
+    ConstInputDecimal {
+        dst: DecimalReg,
+        input: InputId,
+    },
+    ConstInputBytes {
+        dst: BytesReg,
+        input: InputId,
+    },
+    ConstInputStr {
+        dst: StrReg,
+        input: InputId,
     },
 
     DecAdd {

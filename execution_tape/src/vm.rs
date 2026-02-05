@@ -14,8 +14,9 @@ use core::fmt;
 use crate::aggregates::{AggError, AggHeap};
 use crate::arena::{BytesHandle, StrHandle, ValueArena};
 use crate::host::{Host, HostError, ValueRef};
+use crate::inputs::{InputBindError, InputSnapshot, InputValue};
 use crate::program::ValueType;
-use crate::program::{ConstEntry, Function, Program};
+use crate::program::{ConstEntry, Function, InputId, Program};
 use crate::trace::{ScopeKind, TraceEvent, TraceMask, TraceOutcome, TraceSink};
 use crate::typed::{
     AggReg, BoolReg, BytesReg, DecimalReg, F64Reg, FuncReg, I64Reg, ObjReg, StrReg, U64Reg,
@@ -104,6 +105,8 @@ pub enum Trap {
     InvalidUtf8,
     /// Explicit trap instruction.
     TrapCode(u32),
+    /// Input binding failed before execution.
+    InputBind(InputBindError),
 }
 
 impl fmt::Display for Trap {
@@ -139,6 +142,7 @@ impl fmt::Display for Trap {
             Self::StrNotCharBoundary => write!(f, "string slice not on char boundary"),
             Self::InvalidUtf8 => write!(f, "invalid utf-8"),
             Self::TrapCode(code) => write!(f, "trap({code})"),
+            Self::InputBind(e) => write!(f, "input bind error: {e}"),
         }
     }
 }
@@ -205,6 +209,33 @@ struct Frame {
     ret_instr_ix: usize,
 }
 
+#[derive(Copy, Clone, Debug)]
+enum InputResolved {
+    Unit,
+    Bool(bool),
+    I64(i64),
+    U64(u64),
+    F64(f64),
+    Decimal(Decimal),
+    Bytes(BytesHandle),
+    Str(StrHandle),
+}
+
+impl InputResolved {
+    fn value_type(self) -> ValueType {
+        match self {
+            Self::Unit => ValueType::Unit,
+            Self::Bool(_) => ValueType::Bool,
+            Self::I64(_) => ValueType::I64,
+            Self::U64(_) => ValueType::U64,
+            Self::F64(_) => ValueType::F64,
+            Self::Decimal(_) => ValueType::Decimal,
+            Self::Bytes(_) => ValueType::Bytes,
+            Self::Str(_) => ValueType::Str,
+        }
+    }
+}
+
 /// Per-run execution context for [`Vm`].
 ///
 /// This holds all transient state required to execute a single entrypoint (register file, call
@@ -229,6 +260,8 @@ pub struct ExecutionContext {
     objs: Vec<Obj>,
     aggs: Vec<AggHandle>,
     funcs: Vec<FuncId>,
+
+    inputs: Vec<InputResolved>,
 
     frames: Vec<Frame>,
 }
@@ -256,10 +289,67 @@ impl ExecutionContext {
         self.objs.clear();
         self.aggs.clear();
         self.funcs.clear();
+        self.inputs.clear();
         self.arena.clear();
 
         self.fuel = fuel;
         self.host_calls = 0;
+    }
+
+    fn bind_inputs(
+        &mut self,
+        program: &Program,
+        snapshot: &InputSnapshot,
+    ) -> Result<(), InputBindError> {
+        let expected = program.input_table.len();
+        let actual = snapshot.entries.len();
+        if expected != actual {
+            return Err(InputBindError::SnapshotLenMismatch { expected, actual });
+        }
+
+        self.inputs.clear();
+        self.inputs.reserve(expected);
+
+        for (i, (decl, value)) in program
+            .input_table
+            .iter()
+            .zip(snapshot.entries.iter())
+            .enumerate()
+        {
+            let id = InputId(u32::try_from(i).unwrap_or(u32::MAX));
+            let resolved = match (decl.ty, value) {
+                (ValueType::Unit, InputValue::Unit) => InputResolved::Unit,
+                (ValueType::Bool, InputValue::Bool(v)) => InputResolved::Bool(*v),
+                (ValueType::I64, InputValue::I64(v)) => InputResolved::I64(*v),
+                (ValueType::U64, InputValue::U64(v)) => InputResolved::U64(*v),
+                (ValueType::F64, InputValue::F64(v)) => InputResolved::F64(*v),
+                (ValueType::Decimal, InputValue::Decimal(v)) => InputResolved::Decimal(*v),
+                (ValueType::Bytes, InputValue::Bytes(b)) => {
+                    let h = self.arena.alloc_bytes(b.clone());
+                    InputResolved::Bytes(h)
+                }
+                (ValueType::Str, InputValue::Str(s)) => {
+                    let h = self.arena.alloc_str(s.clone());
+                    InputResolved::Str(h)
+                }
+                (ValueType::Obj(_), _) | (ValueType::Agg, _) | (ValueType::Func, _) => {
+                    return Err(InputBindError::UnsupportedType { id, ty: decl.ty });
+                }
+                _ => {
+                    return Err(InputBindError::TypeMismatch {
+                        id,
+                        expected: decl.ty,
+                        actual: value.ty(),
+                    });
+                }
+            };
+            self.inputs.push(resolved);
+        }
+        Ok(())
+    }
+
+    fn input(&self, id: InputId) -> Option<InputResolved> {
+        self.inputs.get(id.0 as usize).copied()
     }
 }
 
@@ -313,6 +403,22 @@ impl<H: Host> Vm<H> {
         self.run_with_ctx(&mut ctx, program, entry, args, trace_mask, trace)
     }
 
+    /// Executes `program` starting at `entry` with an explicit input snapshot.
+    ///
+    /// The snapshot is validated and resolved before execution begins.
+    pub fn run_with_snapshot(
+        &mut self,
+        program: &VerifiedProgram,
+        entry: FuncId,
+        args: &[Value],
+        snapshot: &InputSnapshot,
+        trace_mask: TraceMask,
+        trace: Option<&mut dyn TraceSink>,
+    ) -> Result<Vec<Value>, TrapInfo> {
+        let mut ctx = ExecutionContext::new();
+        self.run_with_snapshot_ctx(&mut ctx, program, entry, args, snapshot, trace_mask, trace)
+    }
+
     /// Executes `program` starting at `entry` using an explicit per-run [`ExecutionContext`].
     ///
     /// Keeping the context separate allows embedders to reuse allocations across runs.
@@ -338,7 +444,54 @@ impl<H: Host> Vm<H> {
             );
         }
 
-        let result = self.run_body(ctx, program, entry, args, trace_mask, &mut trace);
+        let result = self.run_body(ctx, program, entry, args, trace_mask, &mut trace, None);
+
+        if trace_mask.contains(TraceMask::RUN)
+            && let Some(t) = trace.as_mut()
+        {
+            let outcome = match &result {
+                Ok(_) => TraceOutcome::Ok,
+                Err(e) => TraceOutcome::Trap(e),
+            };
+            t.event(program_ref, TraceEvent::RunEnd { outcome });
+        }
+
+        result
+    }
+
+    /// Executes `program` starting at `entry` with an explicit input snapshot and context.
+    pub fn run_with_snapshot_ctx(
+        &mut self,
+        ctx: &mut ExecutionContext,
+        program: &VerifiedProgram,
+        entry: FuncId,
+        args: &[Value],
+        snapshot: &InputSnapshot,
+        trace_mask: TraceMask,
+        mut trace: Option<&mut dyn TraceSink>,
+    ) -> Result<Vec<Value>, TrapInfo> {
+        let program_ref = program.program();
+        if trace_mask.contains(TraceMask::RUN)
+            && let Some(t) = trace.as_mut()
+        {
+            t.event(
+                program_ref,
+                TraceEvent::RunStart {
+                    entry,
+                    arg_count: args.len(),
+                },
+            );
+        }
+
+        let result = self.run_body(
+            ctx,
+            program,
+            entry,
+            args,
+            trace_mask,
+            &mut trace,
+            Some(snapshot),
+        );
 
         if trace_mask.contains(TraceMask::RUN)
             && let Some(t) = trace.as_mut()
@@ -361,6 +514,7 @@ impl<H: Host> Vm<H> {
         args: &[Value],
         trace_mask: TraceMask,
         trace: &mut Option<&mut dyn TraceSink>,
+        snapshot: Option<&InputSnapshot>,
     ) -> Result<Vec<Value>, TrapInfo> {
         let program_ref = program.program();
         let max_call_depth = self.limits.max_call_depth;
@@ -376,6 +530,11 @@ impl<H: Host> Vm<H> {
         }
         validate_entry_args(program_ref, entry_fn, args)
             .map_err(|t| ctx.trap(entry, 0, None, t))?;
+
+        if let Some(snapshot) = snapshot {
+            ctx.bind_inputs(program_ref, snapshot)
+                .map_err(|e| ctx.trap(entry, 0, None, Trap::InputBind(e)))?;
+        }
 
         let entry_vf = program
             .verified(entry)
@@ -696,6 +855,223 @@ impl<H: Host> Vm<H> {
                     let h = ctx.arena.alloc_str_from_str(s);
                     ctx.write_str_handle(base, *dst, h);
                     ctx.frames[frame_index].pc = next_pc;
+                }
+
+                VerifiedInstr::ConstInputUnit { dst, input } => {
+                    let v = ctx.input(*input).ok_or_else(|| {
+                        ctx.trap(
+                            func_id,
+                            pc,
+                            span_id,
+                            Trap::InputBind(InputBindError::MissingInput { id: *input }),
+                        )
+                    })?;
+                    match v {
+                        InputResolved::Unit => {
+                            ctx.write_unit(base, *dst, 0);
+                            ctx.frames[frame_index].pc = next_pc;
+                        }
+                        _ => {
+                            return Err(ctx.trap(
+                                func_id,
+                                pc,
+                                span_id,
+                                Trap::TypeMismatch {
+                                    expected: ValueType::Unit,
+                                    actual: v.value_type(),
+                                },
+                            ));
+                        }
+                    }
+                }
+                VerifiedInstr::ConstInputBool { dst, input } => {
+                    let v = ctx.input(*input).ok_or_else(|| {
+                        ctx.trap(
+                            func_id,
+                            pc,
+                            span_id,
+                            Trap::InputBind(InputBindError::MissingInput { id: *input }),
+                        )
+                    })?;
+                    match v {
+                        InputResolved::Bool(b) => {
+                            ctx.write_bool(base, *dst, b);
+                            ctx.frames[frame_index].pc = next_pc;
+                        }
+                        _ => {
+                            return Err(ctx.trap(
+                                func_id,
+                                pc,
+                                span_id,
+                                Trap::TypeMismatch {
+                                    expected: ValueType::Bool,
+                                    actual: v.value_type(),
+                                },
+                            ));
+                        }
+                    }
+                }
+                VerifiedInstr::ConstInputI64 { dst, input } => {
+                    let v = ctx.input(*input).ok_or_else(|| {
+                        ctx.trap(
+                            func_id,
+                            pc,
+                            span_id,
+                            Trap::InputBind(InputBindError::MissingInput { id: *input }),
+                        )
+                    })?;
+                    match v {
+                        InputResolved::I64(i) => {
+                            ctx.write_i64(base, *dst, i);
+                            ctx.frames[frame_index].pc = next_pc;
+                        }
+                        _ => {
+                            return Err(ctx.trap(
+                                func_id,
+                                pc,
+                                span_id,
+                                Trap::TypeMismatch {
+                                    expected: ValueType::I64,
+                                    actual: v.value_type(),
+                                },
+                            ));
+                        }
+                    }
+                }
+                VerifiedInstr::ConstInputU64 { dst, input } => {
+                    let v = ctx.input(*input).ok_or_else(|| {
+                        ctx.trap(
+                            func_id,
+                            pc,
+                            span_id,
+                            Trap::InputBind(InputBindError::MissingInput { id: *input }),
+                        )
+                    })?;
+                    match v {
+                        InputResolved::U64(u) => {
+                            ctx.write_u64(base, *dst, u);
+                            ctx.frames[frame_index].pc = next_pc;
+                        }
+                        _ => {
+                            return Err(ctx.trap(
+                                func_id,
+                                pc,
+                                span_id,
+                                Trap::TypeMismatch {
+                                    expected: ValueType::U64,
+                                    actual: v.value_type(),
+                                },
+                            ));
+                        }
+                    }
+                }
+                VerifiedInstr::ConstInputF64 { dst, input } => {
+                    let v = ctx.input(*input).ok_or_else(|| {
+                        ctx.trap(
+                            func_id,
+                            pc,
+                            span_id,
+                            Trap::InputBind(InputBindError::MissingInput { id: *input }),
+                        )
+                    })?;
+                    match v {
+                        InputResolved::F64(f) => {
+                            ctx.write_f64(base, *dst, f);
+                            ctx.frames[frame_index].pc = next_pc;
+                        }
+                        _ => {
+                            return Err(ctx.trap(
+                                func_id,
+                                pc,
+                                span_id,
+                                Trap::TypeMismatch {
+                                    expected: ValueType::F64,
+                                    actual: v.value_type(),
+                                },
+                            ));
+                        }
+                    }
+                }
+                VerifiedInstr::ConstInputDecimal { dst, input } => {
+                    let v = ctx.input(*input).ok_or_else(|| {
+                        ctx.trap(
+                            func_id,
+                            pc,
+                            span_id,
+                            Trap::InputBind(InputBindError::MissingInput { id: *input }),
+                        )
+                    })?;
+                    match v {
+                        InputResolved::Decimal(d) => {
+                            ctx.write_decimal(base, *dst, d);
+                            ctx.frames[frame_index].pc = next_pc;
+                        }
+                        _ => {
+                            return Err(ctx.trap(
+                                func_id,
+                                pc,
+                                span_id,
+                                Trap::TypeMismatch {
+                                    expected: ValueType::Decimal,
+                                    actual: v.value_type(),
+                                },
+                            ));
+                        }
+                    }
+                }
+                VerifiedInstr::ConstInputBytes { dst, input } => {
+                    let v = ctx.input(*input).ok_or_else(|| {
+                        ctx.trap(
+                            func_id,
+                            pc,
+                            span_id,
+                            Trap::InputBind(InputBindError::MissingInput { id: *input }),
+                        )
+                    })?;
+                    match v {
+                        InputResolved::Bytes(h) => {
+                            ctx.write_bytes_handle(base, *dst, h);
+                            ctx.frames[frame_index].pc = next_pc;
+                        }
+                        _ => {
+                            return Err(ctx.trap(
+                                func_id,
+                                pc,
+                                span_id,
+                                Trap::TypeMismatch {
+                                    expected: ValueType::Bytes,
+                                    actual: v.value_type(),
+                                },
+                            ));
+                        }
+                    }
+                }
+                VerifiedInstr::ConstInputStr { dst, input } => {
+                    let v = ctx.input(*input).ok_or_else(|| {
+                        ctx.trap(
+                            func_id,
+                            pc,
+                            span_id,
+                            Trap::InputBind(InputBindError::MissingInput { id: *input }),
+                        )
+                    })?;
+                    match v {
+                        InputResolved::Str(h) => {
+                            ctx.write_str_handle(base, *dst, h);
+                            ctx.frames[frame_index].pc = next_pc;
+                        }
+                        _ => {
+                            return Err(ctx.trap(
+                                func_id,
+                                pc,
+                                span_id,
+                                Trap::TypeMismatch {
+                                    expected: ValueType::Str,
+                                    actual: v.value_type(),
+                                },
+                            ));
+                        }
+                    }
                 }
 
                 VerifiedInstr::DecAdd { dst, a, b } => {
@@ -2389,7 +2765,8 @@ mod tests {
     use super::*;
     use crate::asm::{Asm, FunctionSig, ProgramBuilder};
     use crate::host::{HostSig, SigHash};
-    use crate::program::{Program, ValueType};
+    use crate::inputs::{InputSnapshot, InputValue};
+    use crate::program::{Const, Program, ValueType};
     use crate::trace::{TraceEvent, TraceMask, TraceOutcome, TraceSink};
     use alloc::vec;
     use alloc::vec::Vec;
@@ -2432,6 +2809,96 @@ mod tests {
         let mut vm = Vm::new(TestHost, Limits::default());
         let out = vm.run(&p, FuncId(0), &[], TraceMask::NONE, None).unwrap();
         assert_eq!(out, vec![Value::I64(7)]);
+    }
+
+    #[test]
+    fn vm_resolves_input_snapshot_consts() {
+        let mut pb = ProgramBuilder::new();
+        let sym_count = pb.symbol("count");
+        let sym_payload = pb.symbol("payload");
+        let sym_label = pb.symbol("label");
+
+        let in_count = pb.input(sym_count, ValueType::I64);
+        let in_payload = pb.input(sym_payload, ValueType::Bytes);
+        let in_label = pb.input(sym_label, ValueType::Str);
+
+        let c_count = pb.constant(Const::ExternInput(in_count));
+        let c_payload = pb.constant(Const::ExternInput(in_payload));
+        let c_label = pb.constant(Const::ExternInput(in_label));
+
+        let mut a = Asm::new();
+        a.const_pool(1, c_count);
+        a.const_pool(2, c_payload);
+        a.const_pool(3, c_label);
+        a.ret(0, &[1, 2, 3]);
+
+        pb.push_function_checked(
+            a,
+            FunctionSig {
+                arg_types: vec![],
+                ret_types: vec![ValueType::I64, ValueType::Bytes, ValueType::Str],
+                reg_count: 4,
+            },
+        )
+        .unwrap();
+        let p = pb.build_verified().unwrap();
+
+        let snapshot = InputSnapshot {
+            entries: vec![
+                InputValue::I64(42),
+                InputValue::Bytes(vec![0xAA, 0xBB]),
+                InputValue::Str("hello".into()),
+            ],
+        };
+
+        let mut vm = Vm::new(TestHost, Limits::default());
+        let out = vm
+            .run_with_snapshot(&p, FuncId(0), &[], &snapshot, TraceMask::NONE, None)
+            .unwrap();
+        assert_eq!(
+            out,
+            vec![
+                Value::I64(42),
+                Value::Bytes(vec![0xAA, 0xBB]),
+                Value::Str("hello".into()),
+            ]
+        );
+    }
+
+    #[test]
+    fn vm_rejects_input_snapshot_type_mismatch() {
+        let mut pb = ProgramBuilder::new();
+        let sym_count = pb.symbol("count");
+        let in_count = pb.input(sym_count, ValueType::I64);
+        let c_count = pb.constant(Const::ExternInput(in_count));
+
+        let mut a = Asm::new();
+        a.const_pool(1, c_count);
+        a.ret(0, &[1]);
+
+        pb.push_function_checked(
+            a,
+            FunctionSig {
+                arg_types: vec![],
+                ret_types: vec![ValueType::I64],
+                reg_count: 2,
+            },
+        )
+        .unwrap();
+        let p = pb.build_verified().unwrap();
+
+        let snapshot = InputSnapshot {
+            entries: vec![InputValue::Bool(true)],
+        };
+
+        let mut vm = Vm::new(TestHost, Limits::default());
+        let err = vm
+            .run_with_snapshot(&p, FuncId(0), &[], &snapshot, TraceMask::NONE, None)
+            .unwrap_err();
+        assert!(matches!(
+            err.trap,
+            Trap::InputBind(InputBindError::TypeMismatch { .. })
+        ));
     }
 
     #[test]

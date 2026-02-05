@@ -312,6 +312,26 @@ pub enum VerifyError {
         /// Constant id.
         const_id: u32,
     },
+    /// A `const_pool` extern input referenced an out-of-bounds input id.
+    InputOutOfBounds {
+        /// Function index within the program.
+        func: u32,
+        /// Byte offset of the instruction.
+        pc: u32,
+        /// Input id.
+        input_id: u32,
+    },
+    /// A `const_pool` extern input used an unsupported value type.
+    InputTypeUnsupported {
+        /// Function index within the program.
+        func: u32,
+        /// Byte offset of the instruction.
+        pc: u32,
+        /// Input id.
+        input_id: u32,
+        /// Declared input type.
+        ty: ValueType,
+    },
     /// A host signature table entry is malformed.
     HostSigMalformed {
         /// Host signature id.
@@ -543,6 +563,19 @@ impl fmt::Display for VerifyError {
                     "function {func} pc={pc} const id out of bounds: {const_id}"
                 )
             }
+            Self::InputOutOfBounds { func, pc, input_id } => write!(
+                f,
+                "function {func} pc={pc} input id out of bounds: {input_id}"
+            ),
+            Self::InputTypeUnsupported {
+                func,
+                pc,
+                input_id,
+                ty,
+            } => write!(
+                f,
+                "function {func} pc={pc} input id {input_id} has unsupported type {ty:?}"
+            ),
             Self::HostSigOutOfBounds { func, pc, host_sig } => {
                 write!(
                     f,
@@ -1216,53 +1249,99 @@ fn verify_function_bytecode(
                         const_id: idx.0,
                     },
                 )?;
-                if matches!(c, ConstEntry::ExternInput(_)) {
-                    return Err(VerifyError::ConstOutOfBounds {
-                        func: func_id,
-                        pc: di.offset,
-                        const_id: idx.0,
-                    });
-                }
-                match const_value_type(c) {
-                    ValueType::Unit => VerifiedInstr::ConstPoolUnit {
-                        dst: map_unit(*dst)?,
-                        idx: *idx,
-                    },
-                    ValueType::Bool => VerifiedInstr::ConstPoolBool {
-                        dst: map_bool(*dst)?,
-                        idx: *idx,
-                    },
-                    ValueType::I64 => VerifiedInstr::ConstPoolI64 {
-                        dst: map_i64(*dst)?,
-                        idx: *idx,
-                    },
-                    ValueType::U64 => VerifiedInstr::ConstPoolU64 {
-                        dst: map_u64(*dst)?,
-                        idx: *idx,
-                    },
-                    ValueType::F64 => VerifiedInstr::ConstPoolF64 {
-                        dst: map_f64(*dst)?,
-                        idx: *idx,
-                    },
-                    ValueType::Decimal => VerifiedInstr::ConstPoolDecimal {
-                        dst: map_decimal(*dst)?,
-                        idx: *idx,
-                    },
-                    ValueType::Bytes => VerifiedInstr::ConstPoolBytes {
-                        dst: map_bytes(*dst)?,
-                        idx: *idx,
-                    },
-                    ValueType::Str => VerifiedInstr::ConstPoolStr {
-                        dst: map_str(*dst)?,
-                        idx: *idx,
-                    },
-                    _ => {
-                        return Err(VerifyError::ConstOutOfBounds {
-                            func: func_id,
-                            pc: di.offset,
-                            const_id: idx.0,
-                        });
+                match c {
+                    ConstEntry::ExternInput(input) => {
+                        let decl = program.input_table.get(input.0 as usize).ok_or(
+                            VerifyError::InputOutOfBounds {
+                                func: func_id,
+                                pc: di.offset,
+                                input_id: input.0,
+                            },
+                        )?;
+                        match decl.ty {
+                            ValueType::Unit => VerifiedInstr::ConstInputUnit {
+                                dst: map_unit(*dst)?,
+                                input: *input,
+                            },
+                            ValueType::Bool => VerifiedInstr::ConstInputBool {
+                                dst: map_bool(*dst)?,
+                                input: *input,
+                            },
+                            ValueType::I64 => VerifiedInstr::ConstInputI64 {
+                                dst: map_i64(*dst)?,
+                                input: *input,
+                            },
+                            ValueType::U64 => VerifiedInstr::ConstInputU64 {
+                                dst: map_u64(*dst)?,
+                                input: *input,
+                            },
+                            ValueType::F64 => VerifiedInstr::ConstInputF64 {
+                                dst: map_f64(*dst)?,
+                                input: *input,
+                            },
+                            ValueType::Decimal => VerifiedInstr::ConstInputDecimal {
+                                dst: map_decimal(*dst)?,
+                                input: *input,
+                            },
+                            ValueType::Bytes => VerifiedInstr::ConstInputBytes {
+                                dst: map_bytes(*dst)?,
+                                input: *input,
+                            },
+                            ValueType::Str => VerifiedInstr::ConstInputStr {
+                                dst: map_str(*dst)?,
+                                input: *input,
+                            },
+                            _ => {
+                                return Err(VerifyError::InputTypeUnsupported {
+                                    func: func_id,
+                                    pc: di.offset,
+                                    input_id: input.0,
+                                    ty: decl.ty,
+                                });
+                            }
+                        }
                     }
+                    _ => match const_value_type(c) {
+                        ValueType::Unit => VerifiedInstr::ConstPoolUnit {
+                            dst: map_unit(*dst)?,
+                            idx: *idx,
+                        },
+                        ValueType::Bool => VerifiedInstr::ConstPoolBool {
+                            dst: map_bool(*dst)?,
+                            idx: *idx,
+                        },
+                        ValueType::I64 => VerifiedInstr::ConstPoolI64 {
+                            dst: map_i64(*dst)?,
+                            idx: *idx,
+                        },
+                        ValueType::U64 => VerifiedInstr::ConstPoolU64 {
+                            dst: map_u64(*dst)?,
+                            idx: *idx,
+                        },
+                        ValueType::F64 => VerifiedInstr::ConstPoolF64 {
+                            dst: map_f64(*dst)?,
+                            idx: *idx,
+                        },
+                        ValueType::Decimal => VerifiedInstr::ConstPoolDecimal {
+                            dst: map_decimal(*dst)?,
+                            idx: *idx,
+                        },
+                        ValueType::Bytes => VerifiedInstr::ConstPoolBytes {
+                            dst: map_bytes(*dst)?,
+                            idx: *idx,
+                        },
+                        ValueType::Str => VerifiedInstr::ConstPoolStr {
+                            dst: map_str(*dst)?,
+                            idx: *idx,
+                        },
+                        _ => {
+                            return Err(VerifyError::ConstOutOfBounds {
+                                func: func_id,
+                                pc: di.offset,
+                                const_id: idx.0,
+                            });
+                        }
+                    },
                 }
             }
 
@@ -2490,12 +2569,16 @@ fn transfer_types(program: &Program, instr: &Instr, state: &mut TypeState) {
         Instr::ConstF64 { dst, .. } => set_value(state, *dst, ValueType::F64),
         Instr::ConstDecimal { dst, .. } => set_value(state, *dst, ValueType::Decimal),
         Instr::ConstPool { dst, idx } => {
-            let t = program
-                .const_pool
-                .get(idx.0 as usize)
-                .map(const_value_type)
-                .map(RegType::Concrete)
-                .unwrap_or(RegType::Ambiguous);
+            let t = match program.const_pool.get(idx.0 as usize) {
+                Some(ConstEntry::ExternInput(input)) => program
+                    .input_table
+                    .get(input.0 as usize)
+                    .map(|decl| decl.ty)
+                    .map(RegType::Concrete)
+                    .unwrap_or(RegType::Ambiguous),
+                Some(c) => RegType::Concrete(const_value_type(c)),
+                None => RegType::Ambiguous,
+            };
             set_reg_type(state, *dst, t);
         }
         Instr::DecAdd { dst, .. } | Instr::DecSub { dst, .. } | Instr::DecMul { dst, .. } => {

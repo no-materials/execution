@@ -167,6 +167,37 @@ pub enum InputBindError {
     SnapshotTrailingBytes,
 }
 
+impl core::fmt::Display for InputBindError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::InvalidSymbolId { id, symbol } => {
+                write!(f, "input {id:?} invalid symbol id {symbol:?}")
+            }
+            Self::UnsupportedType { id, ty } => {
+                write!(f, "input {id:?} unsupported type {ty:?}")
+            }
+            Self::MissingInput { id } => write!(f, "input {id:?} missing"),
+            Self::TypeMismatch {
+                id,
+                expected,
+                actual,
+            } => write!(
+                f,
+                "input {id:?} type mismatch (expected {expected:?}, got {actual:?})"
+            ),
+            Self::ResolverFailed { id } => write!(f, "input {id:?} resolver failed"),
+            Self::SnapshotLenMismatch { expected, actual } => write!(
+                f,
+                "snapshot length mismatch (expected {expected}, got {actual})"
+            ),
+            Self::SnapshotDecodeError(e) => write!(f, "snapshot decode error: {e}"),
+            Self::SnapshotTrailingBytes => write!(f, "snapshot trailing bytes"),
+        }
+    }
+}
+
+impl core::error::Error for InputBindError {}
+
 /// A resolved input snapshot used for deterministic replay.
 #[derive(Clone, Debug, PartialEq)]
 pub struct InputSnapshot {
