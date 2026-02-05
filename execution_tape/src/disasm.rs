@@ -579,7 +579,9 @@ pub enum ConstValue<'a> {
     Str(&'a str),
     /// Extern input constant (resolved at run start).
     ExternInput {
+        /// Input identifier (index into the program input table).
         id: crate::program::InputId,
+        /// Best-effort input symbol, if available.
         symbol: Option<&'a str>,
     },
 }

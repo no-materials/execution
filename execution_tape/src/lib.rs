@@ -69,6 +69,7 @@ pub mod disasm;
 pub mod format;
 pub mod host;
 pub mod host_catalog;
+pub mod inputs;
 pub mod opcode;
 pub mod program;
 pub mod trace;
