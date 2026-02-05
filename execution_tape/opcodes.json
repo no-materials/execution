@@ -1,122 +1,726 @@
 {
   "version": 1,
   "opcodes": [
-    { "name": "Nop", "byte": "0x00", "terminator": false },
-    { "name": "Mov", "byte": "0x01", "terminator": false },
-    { "name": "Trap", "byte": "0x02", "terminator": true },
-
-    { "name": "ConstUnit", "byte": "0x10", "terminator": false },
-    { "name": "ConstBool", "byte": "0x11", "terminator": false },
-    { "name": "ConstI64", "byte": "0x12", "terminator": false },
-    { "name": "ConstU64", "byte": "0x13", "terminator": false },
-    { "name": "ConstF64", "byte": "0x14", "terminator": false },
-    { "name": "ConstDecimal", "byte": "0x15", "terminator": false },
-    { "name": "ConstPool", "byte": "0x16", "terminator": false },
-
-    { "name": "DecAdd", "byte": "0x17", "terminator": false },
-    { "name": "DecSub", "byte": "0x18", "terminator": false },
-    { "name": "DecMul", "byte": "0x19", "terminator": false },
-
-    { "name": "F64Add", "byte": "0x1A", "terminator": false },
-    { "name": "F64Sub", "byte": "0x1B", "terminator": false },
-    { "name": "F64Mul", "byte": "0x1C", "terminator": false },
-
-    { "name": "I64Add", "byte": "0x20", "terminator": false },
-    { "name": "I64Sub", "byte": "0x21", "terminator": false },
-    { "name": "I64Mul", "byte": "0x22", "terminator": false },
-
-    { "name": "U64Add", "byte": "0x23", "terminator": false },
-    { "name": "U64Sub", "byte": "0x24", "terminator": false },
-    { "name": "U64Mul", "byte": "0x25", "terminator": false },
-    { "name": "U64And", "byte": "0x26", "terminator": false },
-    { "name": "U64Or", "byte": "0x27", "terminator": false },
-
-    { "name": "I64Eq", "byte": "0x28", "terminator": false },
-    { "name": "I64Lt", "byte": "0x29", "terminator": false },
-    { "name": "U64Eq", "byte": "0x2A", "terminator": false },
-    { "name": "U64Lt", "byte": "0x2B", "terminator": false },
-    { "name": "U64Xor", "byte": "0x2C", "terminator": false },
-    { "name": "U64Shl", "byte": "0x2D", "terminator": false },
-    { "name": "U64Shr", "byte": "0x2E", "terminator": false },
-    { "name": "U64Gt", "byte": "0x2F", "terminator": false },
-
-    { "name": "BoolNot", "byte": "0x30", "terminator": false },
-    { "name": "U64Le", "byte": "0x31", "terminator": false },
-    { "name": "U64Ge", "byte": "0x32", "terminator": false },
-    { "name": "I64And", "byte": "0x33", "terminator": false },
-    { "name": "U64ToI64", "byte": "0x34", "terminator": false },
-    { "name": "I64ToU64", "byte": "0x35", "terminator": false },
-    { "name": "I64Or", "byte": "0x36", "terminator": false },
-    { "name": "I64Xor", "byte": "0x37", "terminator": false },
-    { "name": "Select", "byte": "0x38", "terminator": false },
-    { "name": "I64Gt", "byte": "0x39", "terminator": false },
-    { "name": "I64Le", "byte": "0x3A", "terminator": false },
-    { "name": "I64Ge", "byte": "0x3B", "terminator": false },
-    { "name": "I64Shl", "byte": "0x3C", "terminator": false },
-    { "name": "I64Shr", "byte": "0x3D", "terminator": false },
-
-    { "name": "Br", "byte": "0x40", "terminator": true },
-    { "name": "Jmp", "byte": "0x41", "terminator": true },
-
-    { "name": "Call", "byte": "0x50", "terminator": false },
-    { "name": "Ret", "byte": "0x51", "terminator": true },
-    { "name": "HostCall", "byte": "0x52", "terminator": false },
-
-    { "name": "TupleNew", "byte": "0x60", "terminator": false },
-    { "name": "TupleGet", "byte": "0x61", "terminator": false },
-    { "name": "StructNew", "byte": "0x62", "terminator": false },
-    { "name": "StructGet", "byte": "0x63", "terminator": false },
-    { "name": "ArrayNew", "byte": "0x64", "terminator": false },
-    { "name": "ArrayLen", "byte": "0x65", "terminator": false },
-    { "name": "ArrayGet", "byte": "0x66", "terminator": false },
-    { "name": "TupleLen", "byte": "0x67", "terminator": false },
-    { "name": "StructFieldCount", "byte": "0x68", "terminator": false },
-    { "name": "ArrayGetImm", "byte": "0x69", "terminator": false },
-    { "name": "BytesLen", "byte": "0x6A", "terminator": false },
-    { "name": "StrLen", "byte": "0x6B", "terminator": false },
-    { "name": "I64Div", "byte": "0x6C", "terminator": false },
-    { "name": "I64Rem", "byte": "0x6D", "terminator": false },
-    { "name": "U64Div", "byte": "0x6E", "terminator": false },
-    { "name": "U64Rem", "byte": "0x6F", "terminator": false },
-    { "name": "I64ToF64", "byte": "0x70", "terminator": false },
-    { "name": "U64ToF64", "byte": "0x71", "terminator": false },
-    { "name": "F64ToI64", "byte": "0x72", "terminator": false },
-    { "name": "F64ToU64", "byte": "0x73", "terminator": false },
-    { "name": "DecToI64", "byte": "0x74", "terminator": false },
-    { "name": "DecToU64", "byte": "0x75", "terminator": false },
-    { "name": "I64ToDec", "byte": "0x76", "terminator": false },
-    { "name": "U64ToDec", "byte": "0x77", "terminator": false },
-    { "name": "BytesEq", "byte": "0x78", "terminator": false },
-    { "name": "StrEq", "byte": "0x79", "terminator": false },
-    { "name": "BytesConcat", "byte": "0x7A", "terminator": false },
-    { "name": "StrConcat", "byte": "0x7B", "terminator": false },
-    { "name": "BytesGet", "byte": "0x7C", "terminator": false },
-    { "name": "BytesGetImm", "byte": "0x7D", "terminator": false },
-    { "name": "BytesSlice", "byte": "0x7E", "terminator": false },
-    { "name": "StrSlice", "byte": "0x7F", "terminator": false },
-    { "name": "StrToBytes", "byte": "0x80", "terminator": false },
-    { "name": "BytesToStr", "byte": "0x81", "terminator": false },
-
-    { "name": "F64Div", "byte": "0x82", "terminator": false },
-    { "name": "F64Eq", "byte": "0x83", "terminator": false },
-    { "name": "F64Lt", "byte": "0x84", "terminator": false },
-    { "name": "F64Gt", "byte": "0x85", "terminator": false },
-    { "name": "F64Le", "byte": "0x86", "terminator": false },
-    { "name": "F64Ge", "byte": "0x87", "terminator": false },
-
-    { "name": "BoolAnd", "byte": "0x88", "terminator": false },
-    { "name": "BoolOr", "byte": "0x89", "terminator": false },
-    { "name": "BoolXor", "byte": "0x8A", "terminator": false },
-
-    { "name": "F64Neg", "byte": "0x8B", "terminator": false },
-    { "name": "F64Abs", "byte": "0x8C", "terminator": false },
-    { "name": "F64Min", "byte": "0x8D", "terminator": false },
-    { "name": "F64Max", "byte": "0x8E", "terminator": false },
-    { "name": "F64MinNum", "byte": "0x8F", "terminator": false },
-    { "name": "F64MaxNum", "byte": "0x90", "terminator": false },
-    { "name": "F64Rem", "byte": "0x91", "terminator": false },
-    { "name": "F64ToBits", "byte": "0x92", "terminator": false },
-    { "name": "F64FromBits", "byte": "0x93", "terminator": false }
+    {
+      "name": "Nop",
+      "mnemonic": "nop",
+      "byte": "0x00",
+      "terminator": false,
+      "doc": "No-op."
+    },
+    {
+      "name": "Mov",
+      "mnemonic": "mov",
+      "byte": "0x01",
+      "terminator": false,
+      "doc": "`dst = src`."
+    },
+    {
+      "name": "Trap",
+      "mnemonic": "trap",
+      "byte": "0x02",
+      "terminator": true,
+      "doc": "Trap unconditionally with a trap code."
+    },
+    {
+      "name": "ConstUnit",
+      "mnemonic": "const.unit",
+      "byte": "0x10",
+      "terminator": false,
+      "doc": "`dst = ()`."
+    },
+    {
+      "name": "ConstBool",
+      "mnemonic": "const.bool",
+      "byte": "0x11",
+      "terminator": false,
+      "doc": "`dst = bool`."
+    },
+    {
+      "name": "ConstI64",
+      "mnemonic": "const.i64",
+      "byte": "0x12",
+      "terminator": false,
+      "doc": "`dst = i64`."
+    },
+    {
+      "name": "ConstU64",
+      "mnemonic": "const.u64",
+      "byte": "0x13",
+      "terminator": false,
+      "doc": "`dst = u64`."
+    },
+    {
+      "name": "ConstF64",
+      "mnemonic": "const.f64",
+      "byte": "0x14",
+      "terminator": false,
+      "doc": "`dst = f64` encoded as raw IEEE bits."
+    },
+    {
+      "name": "ConstDecimal",
+      "mnemonic": "const.decimal",
+      "byte": "0x15",
+      "terminator": false,
+      "doc": "`dst = Decimal { mantissa, scale }`."
+    },
+    {
+      "name": "ConstPool",
+      "mnemonic": "const.pool",
+      "byte": "0x16",
+      "terminator": false,
+      "doc": "`dst = const_pool[idx]`."
+    },
+    {
+      "name": "DecAdd",
+      "mnemonic": "dec.add",
+      "byte": "0x17",
+      "terminator": false,
+      "doc": "`dst = a + b` (`Decimal`)."
+    },
+    {
+      "name": "DecSub",
+      "mnemonic": "dec.sub",
+      "byte": "0x18",
+      "terminator": false,
+      "doc": "`dst = a - b` (`Decimal`)."
+    },
+    {
+      "name": "DecMul",
+      "mnemonic": "dec.mul",
+      "byte": "0x19",
+      "terminator": false,
+      "doc": "`dst = a * b` (`Decimal`)."
+    },
+    {
+      "name": "F64Add",
+      "mnemonic": "f64.add",
+      "byte": "0x1A",
+      "terminator": false,
+      "doc": "`dst = a + b` (`f64`)."
+    },
+    {
+      "name": "F64Sub",
+      "mnemonic": "f64.sub",
+      "byte": "0x1B",
+      "terminator": false,
+      "doc": "`dst = a - b` (`f64`)."
+    },
+    {
+      "name": "F64Mul",
+      "mnemonic": "f64.mul",
+      "byte": "0x1C",
+      "terminator": false,
+      "doc": "`dst = a * b` (`f64`)."
+    },
+    {
+      "name": "I64Add",
+      "mnemonic": "i64.add",
+      "byte": "0x20",
+      "terminator": false,
+      "doc": "`dst = a + b` (`i64`)."
+    },
+    {
+      "name": "I64Sub",
+      "mnemonic": "i64.sub",
+      "byte": "0x21",
+      "terminator": false,
+      "doc": "`dst = a - b` (`i64`)."
+    },
+    {
+      "name": "I64Mul",
+      "mnemonic": "i64.mul",
+      "byte": "0x22",
+      "terminator": false,
+      "doc": "`dst = a * b` (`i64`)."
+    },
+    {
+      "name": "U64Add",
+      "mnemonic": "u64.add",
+      "byte": "0x23",
+      "terminator": false,
+      "doc": "`dst = a + b` (`u64`)."
+    },
+    {
+      "name": "U64Sub",
+      "mnemonic": "u64.sub",
+      "byte": "0x24",
+      "terminator": false,
+      "doc": "`dst = a - b` (`u64`)."
+    },
+    {
+      "name": "U64Mul",
+      "mnemonic": "u64.mul",
+      "byte": "0x25",
+      "terminator": false,
+      "doc": "`dst = a * b` (`u64`)."
+    },
+    {
+      "name": "U64And",
+      "mnemonic": "u64.and",
+      "byte": "0x26",
+      "terminator": false,
+      "doc": "`dst = a & b` (`u64`)."
+    },
+    {
+      "name": "U64Or",
+      "mnemonic": "u64.or",
+      "byte": "0x27",
+      "terminator": false,
+      "doc": "`dst = a | b` (`u64`)."
+    },
+    {
+      "name": "I64Eq",
+      "mnemonic": "i64.eq",
+      "byte": "0x28",
+      "terminator": false,
+      "doc": "`dst = (a == b)` (`i64` -> `bool`)."
+    },
+    {
+      "name": "I64Lt",
+      "mnemonic": "i64.lt",
+      "byte": "0x29",
+      "terminator": false,
+      "doc": "`dst = (a < b)` (`i64` -> `bool`)."
+    },
+    {
+      "name": "U64Eq",
+      "mnemonic": "u64.eq",
+      "byte": "0x2A",
+      "terminator": false,
+      "doc": "`dst = (a == b)` (`u64` -> `bool`)."
+    },
+    {
+      "name": "U64Lt",
+      "mnemonic": "u64.lt",
+      "byte": "0x2B",
+      "terminator": false,
+      "doc": "`dst = (a < b)` (`u64` -> `bool`)."
+    },
+    {
+      "name": "U64Xor",
+      "mnemonic": "u64.xor",
+      "byte": "0x2C",
+      "terminator": false,
+      "doc": "`dst = a ^ b` (`u64`)."
+    },
+    {
+      "name": "U64Shl",
+      "mnemonic": "u64.shl",
+      "byte": "0x2D",
+      "terminator": false,
+      "doc": "`dst = a << (b & 63)` (`u64`)."
+    },
+    {
+      "name": "U64Shr",
+      "mnemonic": "u64.shr",
+      "byte": "0x2E",
+      "terminator": false,
+      "doc": "`dst = a >> (b & 63)` (`u64`)."
+    },
+    {
+      "name": "U64Gt",
+      "mnemonic": "u64.gt",
+      "byte": "0x2F",
+      "terminator": false,
+      "doc": "`dst = (a > b)` (`u64` -> `bool`)."
+    },
+    {
+      "name": "BoolNot",
+      "mnemonic": "bool.not",
+      "byte": "0x30",
+      "terminator": false,
+      "doc": "`dst = !a` (`bool`)."
+    },
+    {
+      "name": "U64Le",
+      "mnemonic": "u64.le",
+      "byte": "0x31",
+      "terminator": false,
+      "doc": "`dst = (a <= b)` (`u64` -> `bool`)."
+    },
+    {
+      "name": "U64Ge",
+      "mnemonic": "u64.ge",
+      "byte": "0x32",
+      "terminator": false,
+      "doc": "`dst = (a >= b)` (`u64` -> `bool`)."
+    },
+    {
+      "name": "I64And",
+      "mnemonic": "i64.and",
+      "byte": "0x33",
+      "terminator": false,
+      "doc": "`dst = a & b` (`i64`)."
+    },
+    {
+      "name": "U64ToI64",
+      "mnemonic": "u64.to_i64",
+      "byte": "0x34",
+      "terminator": false,
+      "doc": "`dst = u64_to_i64(a)` (traps on overflow)."
+    },
+    {
+      "name": "I64ToU64",
+      "mnemonic": "i64.to_u64",
+      "byte": "0x35",
+      "terminator": false,
+      "doc": "`dst = i64_to_u64(a)` (traps on negative)."
+    },
+    {
+      "name": "I64Or",
+      "mnemonic": "i64.or",
+      "byte": "0x36",
+      "terminator": false,
+      "doc": "`dst = a | b` (`i64`)."
+    },
+    {
+      "name": "I64Xor",
+      "mnemonic": "i64.xor",
+      "byte": "0x37",
+      "terminator": false,
+      "doc": "`dst = a ^ b` (`i64`)."
+    },
+    {
+      "name": "Select",
+      "mnemonic": "select",
+      "byte": "0x38",
+      "terminator": false,
+      "doc": "`dst = if cond { a } else { b }`."
+    },
+    {
+      "name": "I64Gt",
+      "mnemonic": "i64.gt",
+      "byte": "0x39",
+      "terminator": false,
+      "doc": "`dst = (a > b)` (`i64` -> `bool`)."
+    },
+    {
+      "name": "I64Le",
+      "mnemonic": "i64.le",
+      "byte": "0x3A",
+      "terminator": false,
+      "doc": "`dst = (a <= b)` (`i64` -> `bool`)."
+    },
+    {
+      "name": "I64Ge",
+      "mnemonic": "i64.ge",
+      "byte": "0x3B",
+      "terminator": false,
+      "doc": "`dst = (a >= b)` (`i64` -> `bool`)."
+    },
+    {
+      "name": "I64Shl",
+      "mnemonic": "i64.shl",
+      "byte": "0x3C",
+      "terminator": false,
+      "doc": "`dst = a << (b & 63)` (`i64`)."
+    },
+    {
+      "name": "I64Shr",
+      "mnemonic": "i64.shr",
+      "byte": "0x3D",
+      "terminator": false,
+      "doc": "`dst = a >> (b & 63)` (`i64`)."
+    },
+    {
+      "name": "Br",
+      "mnemonic": "br",
+      "byte": "0x40",
+      "terminator": true,
+      "doc": "Branch based on `cond` to `pc_true` or `pc_false` (byte offsets)."
+    },
+    {
+      "name": "Jmp",
+      "mnemonic": "jmp",
+      "byte": "0x41",
+      "terminator": true,
+      "doc": "Jump to `pc_target` (byte offset)."
+    },
+    {
+      "name": "Call",
+      "mnemonic": "call",
+      "byte": "0x50",
+      "terminator": false,
+      "doc": "Call a function."
+    },
+    {
+      "name": "Ret",
+      "mnemonic": "ret",
+      "byte": "0x51",
+      "terminator": true,
+      "doc": "Return from the current function."
+    },
+    {
+      "name": "HostCall",
+      "mnemonic": "host_call",
+      "byte": "0x52",
+      "terminator": false,
+      "doc": "Call a host function."
+    },
+    {
+      "name": "TupleNew",
+      "mnemonic": "tuple.new",
+      "byte": "0x60",
+      "terminator": false,
+      "doc": "Allocate a tuple aggregate."
+    },
+    {
+      "name": "TupleGet",
+      "mnemonic": "tuple.get",
+      "byte": "0x61",
+      "terminator": false,
+      "doc": "Read tuple element at an immediate index."
+    },
+    {
+      "name": "StructNew",
+      "mnemonic": "struct.new",
+      "byte": "0x62",
+      "terminator": false,
+      "doc": "Allocate a struct aggregate."
+    },
+    {
+      "name": "StructGet",
+      "mnemonic": "struct.get",
+      "byte": "0x63",
+      "terminator": false,
+      "doc": "Read struct field at an immediate index."
+    },
+    {
+      "name": "ArrayNew",
+      "mnemonic": "array.new",
+      "byte": "0x64",
+      "terminator": false,
+      "doc": "Allocate an array aggregate."
+    },
+    {
+      "name": "ArrayLen",
+      "mnemonic": "array.len",
+      "byte": "0x65",
+      "terminator": false,
+      "doc": "Read array length."
+    },
+    {
+      "name": "ArrayGet",
+      "mnemonic": "array.get",
+      "byte": "0x66",
+      "terminator": false,
+      "doc": "Read array element at an index register."
+    },
+    {
+      "name": "TupleLen",
+      "mnemonic": "tuple.len",
+      "byte": "0x67",
+      "terminator": false,
+      "doc": "Read tuple length."
+    },
+    {
+      "name": "StructFieldCount",
+      "mnemonic": "struct.field_count",
+      "byte": "0x68",
+      "terminator": false,
+      "doc": "Read struct field count."
+    },
+    {
+      "name": "ArrayGetImm",
+      "mnemonic": "array.get_imm",
+      "byte": "0x69",
+      "terminator": false,
+      "doc": "Read array element at an immediate index."
+    },
+    {
+      "name": "BytesLen",
+      "mnemonic": "bytes.len",
+      "byte": "0x6A",
+      "terminator": false,
+      "doc": "Read byte-string length."
+    },
+    {
+      "name": "StrLen",
+      "mnemonic": "str.len",
+      "byte": "0x6B",
+      "terminator": false,
+      "doc": "Read UTF-8 string length (in bytes)."
+    },
+    {
+      "name": "I64Div",
+      "mnemonic": "i64.div",
+      "byte": "0x6C",
+      "terminator": false,
+      "doc": "`dst = a / b` (`i64`, traps on divide-by-zero and `i64::MIN / -1`)."
+    },
+    {
+      "name": "I64Rem",
+      "mnemonic": "i64.rem",
+      "byte": "0x6D",
+      "terminator": false,
+      "doc": "`dst = a % b` (`i64`, traps on divide-by-zero and `i64::MIN % -1`)."
+    },
+    {
+      "name": "U64Div",
+      "mnemonic": "u64.div",
+      "byte": "0x6E",
+      "terminator": false,
+      "doc": "`dst = a / b` (`u64`, traps on divide-by-zero)."
+    },
+    {
+      "name": "U64Rem",
+      "mnemonic": "u64.rem",
+      "byte": "0x6F",
+      "terminator": false,
+      "doc": "`dst = a % b` (`u64`, traps on divide-by-zero)."
+    },
+    {
+      "name": "I64ToF64",
+      "mnemonic": "i64.to_f64",
+      "byte": "0x70",
+      "terminator": false,
+      "doc": "`dst = (a as f64)` (`i64` to `f64`)."
+    },
+    {
+      "name": "U64ToF64",
+      "mnemonic": "u64.to_f64",
+      "byte": "0x71",
+      "terminator": false,
+      "doc": "`dst = (a as f64)` (`u64` to `f64`)."
+    },
+    {
+      "name": "F64ToI64",
+      "mnemonic": "f64.to_i64",
+      "byte": "0x72",
+      "terminator": false,
+      "doc": "`dst = trunc(a)` (`f64` to `i64`, traps on NaN/inf/out-of-range)."
+    },
+    {
+      "name": "F64ToU64",
+      "mnemonic": "f64.to_u64",
+      "byte": "0x73",
+      "terminator": false,
+      "doc": "`dst = trunc(a)` (`f64` to `u64`, traps on NaN/inf/out-of-range/negative)."
+    },
+    {
+      "name": "DecToI64",
+      "mnemonic": "dec.to_i64",
+      "byte": "0x74",
+      "terminator": false,
+      "doc": "`dst = a.mantissa` (`Decimal` to `i64`, traps if `scale != 0`)."
+    },
+    {
+      "name": "DecToU64",
+      "mnemonic": "dec.to_u64",
+      "byte": "0x75",
+      "terminator": false,
+      "doc": "`dst = a.mantissa` (`Decimal` to `u64`, traps if `scale != 0` or mantissa < 0)."
+    },
+    {
+      "name": "I64ToDec",
+      "mnemonic": "i64.to_dec",
+      "byte": "0x76",
+      "terminator": false,
+      "doc": "`dst = Decimal { mantissa: a * 10^scale, scale }` (traps on overflow)."
+    },
+    {
+      "name": "U64ToDec",
+      "mnemonic": "u64.to_dec",
+      "byte": "0x77",
+      "terminator": false,
+      "doc": "`dst = Decimal { mantissa: a * 10^scale, scale }` (traps on overflow)."
+    },
+    {
+      "name": "BytesEq",
+      "mnemonic": "bytes.eq",
+      "byte": "0x78",
+      "terminator": false,
+      "doc": "`dst = (a == b)` (`bytes` -> `bool`)."
+    },
+    {
+      "name": "StrEq",
+      "mnemonic": "str.eq",
+      "byte": "0x79",
+      "terminator": false,
+      "doc": "`dst = (a == b)` (`str` -> `bool`)."
+    },
+    {
+      "name": "BytesConcat",
+      "mnemonic": "bytes.concat",
+      "byte": "0x7A",
+      "terminator": false,
+      "doc": "`dst = concat(a, b)` (`bytes`)."
+    },
+    {
+      "name": "StrConcat",
+      "mnemonic": "str.concat",
+      "byte": "0x7B",
+      "terminator": false,
+      "doc": "`dst = concat(a, b)` (`str`)."
+    },
+    {
+      "name": "BytesGet",
+      "mnemonic": "bytes.get",
+      "byte": "0x7C",
+      "terminator": false,
+      "doc": "`dst = bytes[index]` (returns `u64` in `0..=255`, traps on OOB)."
+    },
+    {
+      "name": "BytesGetImm",
+      "mnemonic": "bytes.get_imm",
+      "byte": "0x7D",
+      "terminator": false,
+      "doc": "`dst = bytes[index]` (returns `u64` in `0..=255`, traps on OOB)."
+    },
+    {
+      "name": "BytesSlice",
+      "mnemonic": "bytes.slice",
+      "byte": "0x7E",
+      "terminator": false,
+      "doc": "`dst = bytes[start..end]` (traps on invalid range)."
+    },
+    {
+      "name": "StrSlice",
+      "mnemonic": "str.slice",
+      "byte": "0x7F",
+      "terminator": false,
+      "doc": "`dst = s[start..end]` (byte indices; traps on invalid range or non-boundaries)."
+    },
+    {
+      "name": "StrToBytes",
+      "mnemonic": "str.to_bytes",
+      "byte": "0x80",
+      "terminator": false,
+      "doc": "`dst = s.as_bytes().to_vec()`."
+    },
+    {
+      "name": "BytesToStr",
+      "mnemonic": "bytes.to_str",
+      "byte": "0x81",
+      "terminator": false,
+      "doc": "`dst = String::from_utf8(bytes)` (traps on invalid UTF-8)."
+    },
+    {
+      "name": "F64Div",
+      "mnemonic": "f64.div",
+      "byte": "0x82",
+      "terminator": false,
+      "doc": "`dst = a / b` (`f64`)."
+    },
+    {
+      "name": "F64Eq",
+      "mnemonic": "f64.eq",
+      "byte": "0x83",
+      "terminator": false,
+      "doc": "`dst = (a == b)` (`f64` -> `bool`)."
+    },
+    {
+      "name": "F64Lt",
+      "mnemonic": "f64.lt",
+      "byte": "0x84",
+      "terminator": false,
+      "doc": "`dst = (a < b)` (`f64` -> `bool`)."
+    },
+    {
+      "name": "F64Gt",
+      "mnemonic": "f64.gt",
+      "byte": "0x85",
+      "terminator": false,
+      "doc": "`dst = (a > b)` (`f64` -> `bool`)."
+    },
+    {
+      "name": "F64Le",
+      "mnemonic": "f64.le",
+      "byte": "0x86",
+      "terminator": false,
+      "doc": "`dst = (a <= b)` (`f64` -> `bool`)."
+    },
+    {
+      "name": "F64Ge",
+      "mnemonic": "f64.ge",
+      "byte": "0x87",
+      "terminator": false,
+      "doc": "`dst = (a >= b)` (`f64` -> `bool`)."
+    },
+    {
+      "name": "BoolAnd",
+      "mnemonic": "bool.and",
+      "byte": "0x88",
+      "terminator": false,
+      "doc": "`dst = a & b` (`bool`)."
+    },
+    {
+      "name": "BoolOr",
+      "mnemonic": "bool.or",
+      "byte": "0x89",
+      "terminator": false,
+      "doc": "`dst = a | b` (`bool`)."
+    },
+    {
+      "name": "BoolXor",
+      "mnemonic": "bool.xor",
+      "byte": "0x8A",
+      "terminator": false,
+      "doc": "`dst = a ^ b` (`bool`)."
+    },
+    {
+      "name": "F64Neg",
+      "mnemonic": "f64.neg",
+      "byte": "0x8B",
+      "terminator": false,
+      "doc": "`dst = -a` (`f64`)."
+    },
+    {
+      "name": "F64Abs",
+      "mnemonic": "f64.abs",
+      "byte": "0x8C",
+      "terminator": false,
+      "doc": "`dst = abs(a)` (`f64`)."
+    },
+    {
+      "name": "F64Min",
+      "mnemonic": "f64.min",
+      "byte": "0x8D",
+      "terminator": false,
+      "doc": "`dst = min(a, b)` (`f64`, NaN-propagating)."
+    },
+    {
+      "name": "F64Max",
+      "mnemonic": "f64.max",
+      "byte": "0x8E",
+      "terminator": false,
+      "doc": "`dst = max(a, b)` (`f64`, NaN-propagating)."
+    },
+    {
+      "name": "F64MinNum",
+      "mnemonic": "f64.min_num",
+      "byte": "0x8F",
+      "terminator": false,
+      "doc": "`dst = min_num(a, b)` (`f64`, number-favoring)."
+    },
+    {
+      "name": "F64MaxNum",
+      "mnemonic": "f64.max_num",
+      "byte": "0x90",
+      "terminator": false,
+      "doc": "`dst = max_num(a, b)` (`f64`, number-favoring)."
+    },
+    {
+      "name": "F64Rem",
+      "mnemonic": "f64.rem",
+      "byte": "0x91",
+      "terminator": false,
+      "doc": "`dst = a % b` (`f64`)."
+    },
+    {
+      "name": "F64ToBits",
+      "mnemonic": "f64.to_bits",
+      "byte": "0x92",
+      "terminator": false,
+      "doc": "`dst = f64_to_bits(a)` (`f64` -> `u64`)."
+    },
+    {
+      "name": "F64FromBits",
+      "mnemonic": "f64.from_bits",
+      "byte": "0x93",
+      "terminator": false,
+      "doc": "`dst = f64_from_bits(a)` (`u64` -> `f64`)."
+    }
   ]
 }
-

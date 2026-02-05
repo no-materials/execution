@@ -993,7 +993,7 @@ fn fmt_instr_with_labels(
     iv: &InstrView<'_>,
     label_pcs: &[u32],
 ) -> fmt::Result {
-    write!(f, "  {:06}: {}", iv.pc(), opcode_name(iv.opcode()))?;
+    write!(f, "  {:06}: {}", iv.pc(), iv.opcode().mnemonic())?;
     match iv.operands() {
         Operands::Simple => {
             if let Some(dst) = iv.dst() {
@@ -1116,7 +1116,7 @@ fn fmt_const_value(f: &mut fmt::Formatter<'_>, v: ConstValue<'_>) -> fmt::Result
 
 impl fmt::Display for InstrView<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:06}: {}", self.pc(), opcode_name(self.opcode()))?;
+        write!(f, "{:06}: {}", self.pc(), self.opcode().mnemonic())?;
         match self.operands() {
             Operands::Simple => {
                 if let Some(dst) = self.dst() {
@@ -1193,115 +1193,6 @@ impl fmt::Display for InstrView<'_> {
             }
         }
         Ok(())
-    }
-}
-
-fn opcode_name(op: Opcode) -> &'static str {
-    // Keep names stable and parseable; match `Opcode` variants.
-    match op {
-        Opcode::Nop => "nop",
-        Opcode::Mov => "mov",
-        Opcode::Trap => "trap",
-        Opcode::ConstUnit => "const.unit",
-        Opcode::ConstBool => "const.bool",
-        Opcode::ConstI64 => "const.i64",
-        Opcode::ConstU64 => "const.u64",
-        Opcode::ConstF64 => "const.f64",
-        Opcode::ConstDecimal => "const.decimal",
-        Opcode::ConstPool => "const.pool",
-        Opcode::DecAdd => "dec.add",
-        Opcode::DecSub => "dec.sub",
-        Opcode::DecMul => "dec.mul",
-        Opcode::F64Add => "f64.add",
-        Opcode::F64Sub => "f64.sub",
-        Opcode::F64Mul => "f64.mul",
-        Opcode::F64Div => "f64.div",
-        Opcode::F64Neg => "f64.neg",
-        Opcode::F64Abs => "f64.abs",
-        Opcode::F64Min => "f64.min",
-        Opcode::F64Max => "f64.max",
-        Opcode::F64MinNum => "f64.min_num",
-        Opcode::F64MaxNum => "f64.max_num",
-        Opcode::F64Rem => "f64.rem",
-        Opcode::F64ToBits => "f64.to_bits",
-        Opcode::F64FromBits => "f64.from_bits",
-        Opcode::I64Add => "i64.add",
-        Opcode::I64Sub => "i64.sub",
-        Opcode::I64Mul => "i64.mul",
-        Opcode::U64Add => "u64.add",
-        Opcode::U64Sub => "u64.sub",
-        Opcode::U64Mul => "u64.mul",
-        Opcode::U64And => "u64.and",
-        Opcode::U64Or => "u64.or",
-        Opcode::U64Xor => "u64.xor",
-        Opcode::U64Shl => "u64.shl",
-        Opcode::U64Shr => "u64.shr",
-        Opcode::I64And => "i64.and",
-        Opcode::I64Or => "i64.or",
-        Opcode::I64Xor => "i64.xor",
-        Opcode::I64Shl => "i64.shl",
-        Opcode::I64Shr => "i64.shr",
-        Opcode::U64ToI64 => "u64.to_i64",
-        Opcode::I64ToU64 => "i64.to_u64",
-        Opcode::Select => "select",
-        Opcode::I64Gt => "i64.gt",
-        Opcode::I64Le => "i64.le",
-        Opcode::I64Ge => "i64.ge",
-        Opcode::I64Eq => "i64.eq",
-        Opcode::I64Lt => "i64.lt",
-        Opcode::U64Eq => "u64.eq",
-        Opcode::U64Lt => "u64.lt",
-        Opcode::U64Gt => "u64.gt",
-        Opcode::BoolNot => "bool.not",
-        Opcode::U64Le => "u64.le",
-        Opcode::U64Ge => "u64.ge",
-        Opcode::F64Eq => "f64.eq",
-        Opcode::F64Lt => "f64.lt",
-        Opcode::F64Gt => "f64.gt",
-        Opcode::F64Le => "f64.le",
-        Opcode::F64Ge => "f64.ge",
-        Opcode::Br => "br",
-        Opcode::Jmp => "jmp",
-        Opcode::Call => "call",
-        Opcode::Ret => "ret",
-        Opcode::HostCall => "host_call",
-        Opcode::TupleNew => "tuple.new",
-        Opcode::TupleGet => "tuple.get",
-        Opcode::StructNew => "struct.new",
-        Opcode::StructGet => "struct.get",
-        Opcode::ArrayNew => "array.new",
-        Opcode::ArrayLen => "array.len",
-        Opcode::ArrayGet => "array.get",
-        Opcode::ArrayGetImm => "array.get_imm",
-        Opcode::TupleLen => "tuple.len",
-        Opcode::StructFieldCount => "struct.field_count",
-        Opcode::BytesLen => "bytes.len",
-        Opcode::StrLen => "str.len",
-        Opcode::BytesEq => "bytes.eq",
-        Opcode::StrEq => "str.eq",
-        Opcode::BytesConcat => "bytes.concat",
-        Opcode::StrConcat => "str.concat",
-        Opcode::BytesGet => "bytes.get",
-        Opcode::BytesGetImm => "bytes.get_imm",
-        Opcode::BytesSlice => "bytes.slice",
-        Opcode::StrSlice => "str.slice",
-        Opcode::StrToBytes => "str.to_bytes",
-        Opcode::BytesToStr => "bytes.to_str",
-        Opcode::U64Div => "u64.div",
-        Opcode::U64Rem => "u64.rem",
-        Opcode::I64Div => "i64.div",
-        Opcode::I64Rem => "i64.rem",
-        Opcode::I64ToF64 => "i64.to_f64",
-        Opcode::U64ToF64 => "u64.to_f64",
-        Opcode::F64ToI64 => "f64.to_i64",
-        Opcode::F64ToU64 => "f64.to_u64",
-        Opcode::DecToI64 => "dec.to_i64",
-        Opcode::DecToU64 => "dec.to_u64",
-        Opcode::I64ToDec => "i64.to_dec",
-        Opcode::U64ToDec => "u64.to_dec",
-        Opcode::BoolAnd => "bool.and",
-        Opcode::BoolOr => "bool.or",
-        Opcode::BoolXor => "bool.xor",
     }
 }
 
