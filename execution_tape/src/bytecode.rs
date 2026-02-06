@@ -320,140 +320,140 @@ pub(crate) enum Instr {
     BytesToStr { dst: u32, bytes: u32 },
 }
 
-const OPERANDS_NONE: &[OperandKind] = &[];
-const OPERANDS_REG: &[OperandKind] = &[OperandKind::Reg];
-const OPERANDS_REG_REG: &[OperandKind] = &[OperandKind::Reg, OperandKind::Reg];
-const OPERANDS_REG_REG_REG: &[OperandKind] =
-    &[OperandKind::Reg, OperandKind::Reg, OperandKind::Reg];
-const OPERANDS_REG_REG_REG_REG: &[OperandKind] = &[
-    OperandKind::Reg,
-    OperandKind::Reg,
-    OperandKind::Reg,
-    OperandKind::Reg,
-];
-const OPERANDS_IMM_U32: &[OperandKind] = &[OperandKind::ImmU32];
-const OPERANDS_REG_IMM_BOOL: &[OperandKind] = &[OperandKind::Reg, OperandKind::ImmBool];
-const OPERANDS_REG_IMM_I64: &[OperandKind] = &[OperandKind::Reg, OperandKind::ImmI64];
-const OPERANDS_REG_IMM_U64: &[OperandKind] = &[OperandKind::Reg, OperandKind::ImmU64];
-const OPERANDS_REG_IMM_I64_IMM_U8: &[OperandKind] =
-    &[OperandKind::Reg, OperandKind::ImmI64, OperandKind::ImmU8];
-const OPERANDS_REG_CONST_ID: &[OperandKind] = &[OperandKind::Reg, OperandKind::ConstId];
-const OPERANDS_REG_REG_IMM_U32: &[OperandKind] =
-    &[OperandKind::Reg, OperandKind::Reg, OperandKind::ImmU32];
-const OPERANDS_REG_PC_PC: &[OperandKind] = &[OperandKind::Reg, OperandKind::Pc, OperandKind::Pc];
-const OPERANDS_PC: &[OperandKind] = &[OperandKind::Pc];
-const OPERANDS_REG_REG_IMM_U8: &[OperandKind] =
-    &[OperandKind::Reg, OperandKind::Reg, OperandKind::ImmU8];
-const OPERANDS_REG_FUNC_ID_REG_REG_LIST_REG_LIST: &[OperandKind] = &[
-    OperandKind::Reg,
-    OperandKind::FuncId,
-    OperandKind::Reg,
-    OperandKind::RegList,
-    OperandKind::RegList,
-];
-const OPERANDS_REG_HOST_SIG_ID_REG_REG_LIST_REG_LIST: &[OperandKind] = &[
-    OperandKind::Reg,
-    OperandKind::HostSigId,
-    OperandKind::Reg,
-    OperandKind::RegList,
-    OperandKind::RegList,
-];
-const OPERANDS_REG_REG_LIST: &[OperandKind] = &[OperandKind::Reg, OperandKind::RegList];
-const OPERANDS_REG_TYPE_ID_REG_LIST: &[OperandKind] =
-    &[OperandKind::Reg, OperandKind::TypeId, OperandKind::RegList];
-const OPERANDS_REG_ELEM_TYPE_ID_REG_LIST: &[OperandKind] = &[
-    OperandKind::Reg,
-    OperandKind::ElemTypeId,
-    OperandKind::RegList,
-];
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct OperandInfo {
+    pub(crate) kind: OperandKind,
+    pub(crate) encoding: OperandEncoding,
+}
 
-const ENCODINGS_NONE: &[OperandEncoding] = &[];
-const ENCODINGS_REG: &[OperandEncoding] = &[OperandEncoding::RegU32Uleb];
-const ENCODINGS_REG_REG: &[OperandEncoding] =
-    &[OperandEncoding::RegU32Uleb, OperandEncoding::RegU32Uleb];
-const ENCODINGS_REG_REG_REG: &[OperandEncoding] = &[
+impl OperandInfo {
+    const fn new(kind: OperandKind, encoding: OperandEncoding) -> Self {
+        Self { kind, encoding }
+    }
+}
+
+const OPERANDS_NONE: &[OperandInfo] = &[];
+const OPERANDS_REG: &[OperandInfo] = &[OperandInfo::new(
+    OperandKind::Reg,
     OperandEncoding::RegU32Uleb,
-    OperandEncoding::RegU32Uleb,
-    OperandEncoding::RegU32Uleb,
+)];
+const OPERANDS_REG_REG: &[OperandInfo] = &[
+    OperandInfo::new(OperandKind::Reg, OperandEncoding::RegU32Uleb),
+    OperandInfo::new(OperandKind::Reg, OperandEncoding::RegU32Uleb),
 ];
-const ENCODINGS_REG_REG_REG_REG: &[OperandEncoding] = &[
-    OperandEncoding::RegU32Uleb,
-    OperandEncoding::RegU32Uleb,
-    OperandEncoding::RegU32Uleb,
-    OperandEncoding::RegU32Uleb,
+const OPERANDS_REG_REG_REG: &[OperandInfo] = &[
+    OperandInfo::new(OperandKind::Reg, OperandEncoding::RegU32Uleb),
+    OperandInfo::new(OperandKind::Reg, OperandEncoding::RegU32Uleb),
+    OperandInfo::new(OperandKind::Reg, OperandEncoding::RegU32Uleb),
 ];
-const ENCODINGS_IMM_U32: &[OperandEncoding] = &[OperandEncoding::U32Uleb];
-const ENCODINGS_REG_IMM_BOOL: &[OperandEncoding] =
-    &[OperandEncoding::RegU32Uleb, OperandEncoding::BoolU8];
-const ENCODINGS_REG_IMM_I64: &[OperandEncoding] =
-    &[OperandEncoding::RegU32Uleb, OperandEncoding::I64Sleb];
-const ENCODINGS_REG_IMM_U64_ULEB: &[OperandEncoding] =
-    &[OperandEncoding::RegU32Uleb, OperandEncoding::U64Uleb];
-const ENCODINGS_REG_IMM_U64_LE: &[OperandEncoding] =
-    &[OperandEncoding::RegU32Uleb, OperandEncoding::U64Le];
-const ENCODINGS_REG_IMM_I64_IMM_U8: &[OperandEncoding] = &[
-    OperandEncoding::RegU32Uleb,
-    OperandEncoding::I64Sleb,
-    OperandEncoding::U8Raw,
+const OPERANDS_REG_REG_REG_REG: &[OperandInfo] = &[
+    OperandInfo::new(OperandKind::Reg, OperandEncoding::RegU32Uleb),
+    OperandInfo::new(OperandKind::Reg, OperandEncoding::RegU32Uleb),
+    OperandInfo::new(OperandKind::Reg, OperandEncoding::RegU32Uleb),
+    OperandInfo::new(OperandKind::Reg, OperandEncoding::RegU32Uleb),
 ];
-const ENCODINGS_REG_U32: &[OperandEncoding] =
-    &[OperandEncoding::RegU32Uleb, OperandEncoding::U32Uleb];
-const ENCODINGS_REG_REG_U32: &[OperandEncoding] = &[
-    OperandEncoding::RegU32Uleb,
-    OperandEncoding::RegU32Uleb,
+const OPERANDS_IMM_U32: &[OperandInfo] = &[OperandInfo::new(
+    OperandKind::ImmU32,
     OperandEncoding::U32Uleb,
+)];
+const OPERANDS_REG_IMM_BOOL: &[OperandInfo] = &[
+    OperandInfo::new(OperandKind::Reg, OperandEncoding::RegU32Uleb),
+    OperandInfo::new(OperandKind::ImmBool, OperandEncoding::BoolU8),
 ];
-const ENCODINGS_REG_PC_PC: &[OperandEncoding] = &[
-    OperandEncoding::RegU32Uleb,
-    OperandEncoding::U32Uleb,
-    OperandEncoding::U32Uleb,
+const OPERANDS_REG_IMM_I64: &[OperandInfo] = &[
+    OperandInfo::new(OperandKind::Reg, OperandEncoding::RegU32Uleb),
+    OperandInfo::new(OperandKind::ImmI64, OperandEncoding::I64Sleb),
 ];
-const ENCODINGS_PC: &[OperandEncoding] = &[OperandEncoding::U32Uleb];
-const ENCODINGS_REG_REG_IMM_U8: &[OperandEncoding] = &[
-    OperandEncoding::RegU32Uleb,
-    OperandEncoding::RegU32Uleb,
-    OperandEncoding::U8Raw,
+const OPERANDS_REG_IMM_U64_ULEB: &[OperandInfo] = &[
+    OperandInfo::new(OperandKind::Reg, OperandEncoding::RegU32Uleb),
+    OperandInfo::new(OperandKind::ImmU64, OperandEncoding::U64Uleb),
 ];
-const ENCODINGS_CALL_LIKE_FUNC: &[OperandEncoding] = &[
-    OperandEncoding::RegU32Uleb,
-    OperandEncoding::U32Uleb,
-    OperandEncoding::RegU32Uleb,
-    OperandEncoding::RegListU32UlebCountThenRegs,
-    OperandEncoding::RegListU32UlebCountThenRegs,
+const OPERANDS_REG_IMM_U64_LE: &[OperandInfo] = &[
+    OperandInfo::new(OperandKind::Reg, OperandEncoding::RegU32Uleb),
+    OperandInfo::new(OperandKind::ImmU64, OperandEncoding::U64Le),
 ];
-const ENCODINGS_CALL_LIKE_HOST: &[OperandEncoding] = &[
-    OperandEncoding::RegU32Uleb,
-    OperandEncoding::U32Uleb,
-    OperandEncoding::RegU32Uleb,
-    OperandEncoding::RegListU32UlebCountThenRegs,
-    OperandEncoding::RegListU32UlebCountThenRegs,
+const OPERANDS_REG_IMM_I64_IMM_U8: &[OperandInfo] = &[
+    OperandInfo::new(OperandKind::Reg, OperandEncoding::RegU32Uleb),
+    OperandInfo::new(OperandKind::ImmI64, OperandEncoding::I64Sleb),
+    OperandInfo::new(OperandKind::ImmU8, OperandEncoding::U8Raw),
 ];
-const ENCODINGS_RET: &[OperandEncoding] = &[
-    OperandEncoding::RegU32Uleb,
-    OperandEncoding::RegListU32UlebCountThenRegs,
+const OPERANDS_REG_CONST_ID: &[OperandInfo] = &[
+    OperandInfo::new(OperandKind::Reg, OperandEncoding::RegU32Uleb),
+    OperandInfo::new(OperandKind::ConstId, OperandEncoding::U32Uleb),
 ];
-const ENCODINGS_TUPLE_NEW: &[OperandEncoding] = &[
-    OperandEncoding::RegU32Uleb,
-    OperandEncoding::RegListU32UlebCountThenRegs,
+const OPERANDS_REG_REG_IMM_U32: &[OperandInfo] = &[
+    OperandInfo::new(OperandKind::Reg, OperandEncoding::RegU32Uleb),
+    OperandInfo::new(OperandKind::Reg, OperandEncoding::RegU32Uleb),
+    OperandInfo::new(OperandKind::ImmU32, OperandEncoding::U32Uleb),
 ];
-const ENCODINGS_STRUCT_NEW: &[OperandEncoding] = &[
-    OperandEncoding::RegU32Uleb,
-    OperandEncoding::U32Uleb,
-    OperandEncoding::RegListU32UlebCountThenRegs,
+const OPERANDS_REG_PC_PC: &[OperandInfo] = &[
+    OperandInfo::new(OperandKind::Reg, OperandEncoding::RegU32Uleb),
+    OperandInfo::new(OperandKind::Pc, OperandEncoding::U32Uleb),
+    OperandInfo::new(OperandKind::Pc, OperandEncoding::U32Uleb),
 ];
-const ENCODINGS_ARRAY_NEW: &[OperandEncoding] = &[
-    OperandEncoding::RegU32Uleb,
-    OperandEncoding::U32Uleb,
-    OperandEncoding::RegListU32UlebCountThenRegs,
+const OPERANDS_PC: &[OperandInfo] = &[OperandInfo::new(OperandKind::Pc, OperandEncoding::U32Uleb)];
+const OPERANDS_REG_REG_IMM_U8: &[OperandInfo] = &[
+    OperandInfo::new(OperandKind::Reg, OperandEncoding::RegU32Uleb),
+    OperandInfo::new(OperandKind::Reg, OperandEncoding::RegU32Uleb),
+    OperandInfo::new(OperandKind::ImmU8, OperandEncoding::U8Raw),
+];
+const OPERANDS_REG_FUNC_ID_REG_REG_LIST_REG_LIST: &[OperandInfo] = &[
+    OperandInfo::new(OperandKind::Reg, OperandEncoding::RegU32Uleb),
+    OperandInfo::new(OperandKind::FuncId, OperandEncoding::U32Uleb),
+    OperandInfo::new(OperandKind::Reg, OperandEncoding::RegU32Uleb),
+    OperandInfo::new(
+        OperandKind::RegList,
+        OperandEncoding::RegListU32UlebCountThenRegs,
+    ),
+    OperandInfo::new(
+        OperandKind::RegList,
+        OperandEncoding::RegListU32UlebCountThenRegs,
+    ),
+];
+const OPERANDS_REG_HOST_SIG_ID_REG_REG_LIST_REG_LIST: &[OperandInfo] = &[
+    OperandInfo::new(OperandKind::Reg, OperandEncoding::RegU32Uleb),
+    OperandInfo::new(OperandKind::HostSigId, OperandEncoding::U32Uleb),
+    OperandInfo::new(OperandKind::Reg, OperandEncoding::RegU32Uleb),
+    OperandInfo::new(
+        OperandKind::RegList,
+        OperandEncoding::RegListU32UlebCountThenRegs,
+    ),
+    OperandInfo::new(
+        OperandKind::RegList,
+        OperandEncoding::RegListU32UlebCountThenRegs,
+    ),
+];
+const OPERANDS_REG_REG_LIST: &[OperandInfo] = &[
+    OperandInfo::new(OperandKind::Reg, OperandEncoding::RegU32Uleb),
+    OperandInfo::new(
+        OperandKind::RegList,
+        OperandEncoding::RegListU32UlebCountThenRegs,
+    ),
+];
+const OPERANDS_REG_TYPE_ID_REG_LIST: &[OperandInfo] = &[
+    OperandInfo::new(OperandKind::Reg, OperandEncoding::RegU32Uleb),
+    OperandInfo::new(OperandKind::TypeId, OperandEncoding::U32Uleb),
+    OperandInfo::new(
+        OperandKind::RegList,
+        OperandEncoding::RegListU32UlebCountThenRegs,
+    ),
+];
+const OPERANDS_REG_ELEM_TYPE_ID_REG_LIST: &[OperandInfo] = &[
+    OperandInfo::new(OperandKind::Reg, OperandEncoding::RegU32Uleb),
+    OperandInfo::new(OperandKind::ElemTypeId, OperandEncoding::U32Uleb),
+    OperandInfo::new(
+        OperandKind::RegList,
+        OperandEncoding::RegListU32UlebCountThenRegs,
+    ),
 ];
 
 impl Instr {
-    /// Returns operand kind descriptors for this decoded instruction.
+    /// Returns operand schema info for this decoded instruction.
     ///
     /// This is intended for tooling and debug assertions (e.g. checking the opcode JSON schema
     /// stays consistent with the decoder). It is not used to drive execution.
     #[must_use]
-    pub(crate) fn operand_kinds(&self) -> &'static [OperandKind] {
+    pub(crate) fn operand_schema(&self) -> &'static [OperandInfo] {
         match self {
             Self::Nop => OPERANDS_NONE,
             Self::Mov { .. } => OPERANDS_REG_REG,
@@ -462,7 +462,8 @@ impl Instr {
             Self::ConstUnit { .. } => OPERANDS_REG,
             Self::ConstBool { .. } => OPERANDS_REG_IMM_BOOL,
             Self::ConstI64 { .. } => OPERANDS_REG_IMM_I64,
-            Self::ConstU64 { .. } | Self::ConstF64 { .. } => OPERANDS_REG_IMM_U64,
+            Self::ConstU64 { .. } => OPERANDS_REG_IMM_U64_ULEB,
+            Self::ConstF64 { .. } => OPERANDS_REG_IMM_U64_LE,
             Self::ConstDecimal { .. } => OPERANDS_REG_IMM_I64_IMM_U8,
             Self::ConstPool { .. } => OPERANDS_REG_CONST_ID,
 
@@ -564,125 +565,6 @@ impl Instr {
             Self::TupleNew { .. } => OPERANDS_REG_REG_LIST,
             Self::StructNew { .. } => OPERANDS_REG_TYPE_ID_REG_LIST,
             Self::ArrayNew { .. } => OPERANDS_REG_ELEM_TYPE_ID_REG_LIST,
-        }
-    }
-
-    /// Returns operand encoding descriptors for this decoded instruction.
-    ///
-    /// This is intended for internal consistency checks between the opcode spec and the
-    /// hand-written decoder.
-    #[must_use]
-    pub(crate) fn operand_encodings(&self) -> &'static [OperandEncoding] {
-        match self {
-            Self::Nop => ENCODINGS_NONE,
-            Self::Mov { .. } => ENCODINGS_REG_REG,
-            Self::Trap { .. } => ENCODINGS_IMM_U32,
-
-            Self::ConstUnit { .. } => ENCODINGS_REG,
-            Self::ConstBool { .. } => ENCODINGS_REG_IMM_BOOL,
-            Self::ConstI64 { .. } => ENCODINGS_REG_IMM_I64,
-            Self::ConstU64 { .. } => ENCODINGS_REG_IMM_U64_ULEB,
-            Self::ConstF64 { .. } => ENCODINGS_REG_IMM_U64_LE,
-            Self::ConstDecimal { .. } => ENCODINGS_REG_IMM_I64_IMM_U8,
-            Self::ConstPool { .. } => ENCODINGS_REG_U32,
-
-            Self::DecAdd { .. }
-            | Self::DecSub { .. }
-            | Self::DecMul { .. }
-            | Self::F64Add { .. }
-            | Self::F64Sub { .. }
-            | Self::F64Mul { .. }
-            | Self::F64Div { .. }
-            | Self::F64Min { .. }
-            | Self::F64Max { .. }
-            | Self::F64MinNum { .. }
-            | Self::F64MaxNum { .. }
-            | Self::F64Rem { .. }
-            | Self::I64Add { .. }
-            | Self::I64Sub { .. }
-            | Self::I64Mul { .. }
-            | Self::U64Add { .. }
-            | Self::U64Sub { .. }
-            | Self::U64Mul { .. }
-            | Self::U64And { .. }
-            | Self::U64Or { .. }
-            | Self::U64Xor { .. }
-            | Self::U64Shl { .. }
-            | Self::U64Shr { .. }
-            | Self::U64Div { .. }
-            | Self::U64Rem { .. }
-            | Self::I64Div { .. }
-            | Self::I64Rem { .. }
-            | Self::I64Eq { .. }
-            | Self::I64Lt { .. }
-            | Self::I64Gt { .. }
-            | Self::I64Le { .. }
-            | Self::I64Ge { .. }
-            | Self::U64Eq { .. }
-            | Self::U64Lt { .. }
-            | Self::U64Gt { .. }
-            | Self::U64Le { .. }
-            | Self::U64Ge { .. }
-            | Self::F64Eq { .. }
-            | Self::F64Lt { .. }
-            | Self::F64Gt { .. }
-            | Self::F64Le { .. }
-            | Self::F64Ge { .. }
-            | Self::BoolAnd { .. }
-            | Self::BoolOr { .. }
-            | Self::BoolXor { .. }
-            | Self::I64And { .. }
-            | Self::I64Or { .. }
-            | Self::I64Xor { .. }
-            | Self::I64Shl { .. }
-            | Self::I64Shr { .. }
-            | Self::BytesEq { .. }
-            | Self::StrEq { .. }
-            | Self::BytesConcat { .. }
-            | Self::StrConcat { .. }
-            | Self::BytesGet { .. }
-            | Self::ArrayGet { .. } => ENCODINGS_REG_REG_REG,
-
-            Self::F64Neg { .. }
-            | Self::F64Abs { .. }
-            | Self::F64ToBits { .. }
-            | Self::F64FromBits { .. }
-            | Self::U64ToI64 { .. }
-            | Self::I64ToU64 { .. }
-            | Self::I64ToF64 { .. }
-            | Self::U64ToF64 { .. }
-            | Self::F64ToI64 { .. }
-            | Self::F64ToU64 { .. }
-            | Self::DecToI64 { .. }
-            | Self::DecToU64 { .. }
-            | Self::BoolNot { .. }
-            | Self::StrToBytes { .. }
-            | Self::BytesToStr { .. }
-            | Self::TupleLen { .. }
-            | Self::StructFieldCount { .. }
-            | Self::ArrayLen { .. }
-            | Self::BytesLen { .. }
-            | Self::StrLen { .. } => ENCODINGS_REG_REG,
-
-            Self::I64ToDec { .. } | Self::U64ToDec { .. } => ENCODINGS_REG_REG_IMM_U8,
-            Self::Select { .. } | Self::BytesSlice { .. } | Self::StrSlice { .. } => {
-                ENCODINGS_REG_REG_REG_REG
-            }
-            Self::BytesGetImm { .. } | Self::ArrayGetImm { .. } | Self::TupleGet { .. } => {
-                ENCODINGS_REG_REG_U32
-            }
-            Self::StructGet { .. } => ENCODINGS_REG_REG_U32,
-
-            Self::Br { .. } => ENCODINGS_REG_PC_PC,
-            Self::Jmp { .. } => ENCODINGS_PC,
-
-            Self::Call { .. } => ENCODINGS_CALL_LIKE_FUNC,
-            Self::HostCall { .. } => ENCODINGS_CALL_LIKE_HOST,
-            Self::Ret { .. } => ENCODINGS_RET,
-
-            Self::TupleNew { .. } => ENCODINGS_TUPLE_NEW,
-            Self::StructNew { .. } => ENCODINGS_STRUCT_NEW,
-            Self::ArrayNew { .. } => ENCODINGS_ARRAY_NEW,
         }
     }
 
@@ -1618,17 +1500,30 @@ pub(crate) fn decode_instructions(bytes: &[u8]) -> Result<Vec<DecodedInstr>, Byt
         };
 
         #[cfg(debug_assertions)]
-        debug_assert_eq!(
-            op.operand_kinds(),
-            instr.operand_kinds(),
-            "opcode schema drift for {op:?} at pc={offset}"
-        );
-        #[cfg(debug_assertions)]
-        debug_assert_eq!(
-            op.operand_encodings(),
-            instr.operand_encodings(),
-            "opcode encoding schema drift for {op:?} at pc={offset}"
-        );
+        {
+            let schema = instr.operand_schema();
+            let op_schema = op.operands();
+            debug_assert_eq!(
+                op_schema.len(),
+                schema.len(),
+                "opcode schema drift for {op:?} at pc={offset} (operand count)"
+            );
+
+            for (i, operand) in schema.iter().enumerate() {
+                debug_assert_eq!(
+                    op_schema[i].kind, operand.kind,
+                    "opcode schema drift for {op:?} at pc={offset} (operand {i} kind)"
+                );
+                debug_assert_eq!(
+                    op_schema[i].role, operand.role,
+                    "opcode schema drift for {op:?} at pc={offset} (operand {i} role)"
+                );
+                debug_assert_eq!(
+                    op_schema[i].encoding, operand.encoding,
+                    "opcode schema drift for {op:?} at pc={offset} (operand {i} encoding)"
+                );
+            }
+        }
 
         out.push(DecodedInstr {
             offset,
@@ -1941,26 +1836,28 @@ mod tests {
         ];
 
         for (op, instr) in instrs {
+            let schema = instr.operand_schema();
+            let op_schema = op.operands();
             assert_eq!(
-                op.operand_kinds().len(),
-                op.operand_roles().len(),
-                "schema mismatch (kinds vs roles) for {op:?}"
+                op_schema.len(),
+                schema.len(),
+                "opcode operand schema drift for {op:?} (len)"
             );
-            assert_eq!(
-                op.operand_kinds().len(),
-                op.operand_encodings().len(),
-                "schema mismatch (kinds vs encodings) for {op:?}"
-            );
-            assert_eq!(
-                op.operand_kinds(),
-                instr.operand_kinds(),
-                "opcode operand schema drift for {op:?}"
-            );
-            assert_eq!(
-                op.operand_encodings(),
-                instr.operand_encodings(),
-                "opcode encoding schema drift for {op:?}"
-            );
+
+            for (i, operand) in schema.iter().enumerate() {
+                assert_eq!(
+                    op_schema[i].kind, operand.kind,
+                    "opcode operand schema drift for {op:?} (operand {i} kind)"
+                );
+                assert_eq!(
+                    op_schema[i].role, operand.role,
+                    "opcode operand schema drift for {op:?} (operand {i} role)"
+                );
+                assert_eq!(
+                    op_schema[i].encoding, operand.encoding,
+                    "opcode encoding schema drift for {op:?} (operand {i} encoding)"
+                );
+            }
         }
     }
 

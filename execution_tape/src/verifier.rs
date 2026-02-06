@@ -814,10 +814,21 @@ fn verify_function_container(
         decode_instructions(bytecode).map_err(|_| VerifyError::BytecodeDecode { func: func_id })?;
     for di in &decoded {
         let op = Opcode::from_u8(di.opcode).expect("decoder only emits known opcodes");
-        if op.operand_kinds() != di.instr.operand_kinds()
-            || op.operand_roles().len() != op.operand_kinds().len()
-            || op.operand_encodings() != di.instr.operand_encodings()
-        {
+        let schema = di.instr.operand_schema();
+        let op_schema = op.operands();
+        let mut ok = schema.len() == op_schema.len();
+        if ok {
+            for (i, operand) in schema.iter().enumerate() {
+                if op_schema[i].kind != operand.kind
+                    || op_schema[i].role != operand.role
+                    || op_schema[i].encoding != operand.encoding
+                {
+                    ok = false;
+                    break;
+                }
+            }
+        }
+        if !ok {
             return Err(VerifyError::InternalOpcodeSchemaMismatch {
                 func: func_id,
                 pc: di.offset,

@@ -418,47 +418,59 @@ impl<'a> InstrView<'a> {
     /// Optional index-like immediate operand (const pool, host sig table, type ids, etc.).
     #[must_use]
     pub fn input_index(&self) -> Option<InputIndex> {
-        let roles = self.opcode().operand_roles();
+        let operands = self.opcode().operands();
         // Keep the behavior stable: if there are multiple index-like roles, prefer the first one.
-        if roles.iter().any(|r| matches!(r, OperandRole::TrapCode)) {
+        if operands
+            .iter()
+            .any(|o| matches!(o.role, OperandRole::TrapCode))
+        {
             let Instr::Trap { code } = &self.decoded.instr else {
                 return None;
             };
             return Some(InputIndex::TrapCode(*code));
         }
-        if roles.iter().any(|r| matches!(r, OperandRole::Const)) {
+        if operands
+            .iter()
+            .any(|o| matches!(o.role, OperandRole::Const))
+        {
             let Instr::ConstPool { idx, .. } = &self.decoded.instr else {
                 return None;
             };
             return Some(InputIndex::Const(*idx));
         }
-        if roles.iter().any(|r| matches!(r, OperandRole::HostSig)) {
+        if operands
+            .iter()
+            .any(|o| matches!(o.role, OperandRole::HostSig))
+        {
             let Instr::HostCall { host_sig, .. } = &self.decoded.instr else {
                 return None;
             };
             return Some(InputIndex::HostSig(*host_sig));
         }
-        if roles.iter().any(|r| matches!(r, OperandRole::Func)) {
+        if operands.iter().any(|o| matches!(o.role, OperandRole::Func)) {
             let Instr::Call { func_id, .. } = &self.decoded.instr else {
                 return None;
             };
             return Some(InputIndex::Func(*func_id));
         }
-        if roles.iter().any(|r| matches!(r, OperandRole::Type)) {
+        if operands.iter().any(|o| matches!(o.role, OperandRole::Type)) {
             let Instr::StructNew { type_id, .. } = &self.decoded.instr else {
                 return None;
             };
             return Some(InputIndex::Type(*type_id));
         }
-        if roles.iter().any(|r| matches!(r, OperandRole::ElemType)) {
+        if operands
+            .iter()
+            .any(|o| matches!(o.role, OperandRole::ElemType))
+        {
             let Instr::ArrayNew { elem_type_id, .. } = &self.decoded.instr else {
                 return None;
             };
             return Some(InputIndex::ElemType(*elem_type_id));
         }
-        if roles
+        if operands
             .iter()
-            .any(|r| matches!(r, OperandRole::Index | OperandRole::FieldIndex))
+            .any(|o| matches!(o.role, OperandRole::Index | OperandRole::FieldIndex))
         {
             let ix: u32 = match &self.decoded.instr {
                 Instr::TupleGet { index, .. } => *index,
@@ -469,7 +481,10 @@ impl<'a> InstrView<'a> {
             };
             return Some(InputIndex::Index(ix));
         }
-        if roles.iter().any(|r| matches!(r, OperandRole::Scale)) {
+        if operands
+            .iter()
+            .any(|o| matches!(o.role, OperandRole::Scale))
+        {
             let scale: u8 = match &self.decoded.instr {
                 Instr::I64ToDec { scale, .. } | Instr::U64ToDec { scale, .. } => *scale,
                 _ => return None,
@@ -1056,9 +1071,9 @@ fn fmt_instr_with_labels(
             if let Some(ix) = iv.input_index() {
                 if iv
                     .opcode()
-                    .operand_roles()
+                    .operands()
                     .iter()
-                    .any(|r| matches!(r, OperandRole::Const))
+                    .any(|o| matches!(o.role, OperandRole::Const))
                 {
                     write!(f, ", {ix}")?;
                 } else {
@@ -1174,9 +1189,9 @@ impl fmt::Display for InstrView<'_> {
                 if let Some(ix) = self.input_index() {
                     if self
                         .opcode()
-                        .operand_roles()
+                        .operands()
                         .iter()
-                        .any(|r| matches!(r, OperandRole::Const))
+                        .any(|o| matches!(o.role, OperandRole::Const))
                     {
                         write!(f, ", {ix}")?;
                     } else {

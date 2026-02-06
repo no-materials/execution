@@ -235,28 +235,44 @@ fn generate(spec: Spec, src: &Path) -> Result<String> {
     out.push_str("    U64Le,\n");
     out.push_str("}\n\n");
 
-    out.push_str("/// Operand layout for an opcode (indices into `OPERAND_KINDS`).\n");
+    out.push_str("/// Operand schema metadata (kind/role/encoding).\n");
+    out.push_str("#[derive(Copy, Clone, Debug, PartialEq, Eq)]\n");
+    out.push_str("pub struct OperandSchema {\n");
+    out.push_str("    /// Operand kind (semantic type).\n");
+    out.push_str("    pub kind: OperandKind,\n");
+    out.push_str("    /// Operand role (how this operand is used).\n");
+    out.push_str("    pub role: OperandRole,\n");
+    out.push_str("    /// Operand encoding used by the bytecode codec.\n");
+    out.push_str("    pub encoding: OperandEncoding,\n");
+    out.push_str("}\n\n");
+
+    out.push_str("impl OperandSchema {\n");
+    out.push_str("    const fn new(kind: OperandKind, role: OperandRole, encoding: OperandEncoding) -> Self {\n");
+    out.push_str("        Self { kind, role, encoding }\n");
+    out.push_str("    }\n");
+    out.push_str("}\n\n");
+
+    out.push_str("/// Operand layout for an opcode (indices into `OPERANDS`).\n");
     out.push_str("#[derive(Copy, Clone, Debug, PartialEq, Eq)]\n");
     out.push_str("pub struct OperandLayout {\n");
-    out.push_str("    /// Start index in `OPERAND_KINDS`.\n");
+    out.push_str("    /// Start index in `OPERANDS`.\n");
     out.push_str("    pub start: u16,\n");
-    out.push_str("    /// Number of operand kind entries.\n");
+    out.push_str("    /// Number of operand entries.\n");
     out.push_str("    pub len: u8,\n");
     out.push_str("}\n\n");
 
-    let mut operand_kinds: Vec<&'static str> = Vec::new();
-    let mut operand_roles: Vec<String> = Vec::new();
-    let mut operand_encodings: Vec<&'static str> = Vec::new();
+    let mut operands: Vec<String> = Vec::new();
     let mut operand_layout_by_name: Vec<(&str, u16, u8)> = Vec::with_capacity(ops.len());
     for (_, op) in &ops {
-        let start: u16 = operand_kinds
+        let start: u16 = operands
             .len()
             .try_into()
             .context("too many operands to index in u16")?;
         for operand in &op.operands {
-            operand_kinds.push(operand_kind_rust(&operand.kind)?);
-            operand_roles.push(operand_role_rust(&operand.role)?);
-            operand_encodings.push(operand_encoding_rust(&operand.encoding)?);
+            let kind = operand_kind_rust(&operand.kind)?;
+            let role = operand_role_rust(&operand.role)?;
+            let encoding = operand_encoding_rust(&operand.encoding)?;
+            operands.push(format!("OperandSchema::new({kind}, {role}, {encoding})"));
         }
         let len: u8 = op
             .operands
@@ -276,24 +292,10 @@ fn generate(spec: Spec, src: &Path) -> Result<String> {
         });
     }
 
-    out.push_str("/// Flat operand kind table indexed by `OperandLayout`.\n");
-    out.push_str("pub const OPERAND_KINDS: &[OperandKind] = &[\n");
-    for kind in &operand_kinds {
-        out.push_str(&format!("    {kind},\n"));
-    }
-    out.push_str("];\n\n");
-
-    out.push_str("/// Flat operand role table indexed by `OperandLayout`.\n");
-    out.push_str("pub const OPERAND_ROLES: &[OperandRole] = &[\n");
-    for role in &operand_roles {
-        out.push_str(&format!("    {role},\n"));
-    }
-    out.push_str("];\n\n");
-
-    out.push_str("/// Flat operand encoding table indexed by `OperandLayout`.\n");
-    out.push_str("pub const OPERAND_ENCODINGS: &[OperandEncoding] = &[\n");
-    for enc in &operand_encodings {
-        out.push_str(&format!("    {enc},\n"));
+    out.push_str("/// Flat operand schema table indexed by `OperandLayout`.\n");
+    out.push_str("pub const OPERANDS: &[OperandSchema] = &[\n");
+    for operand in &operands {
+        out.push_str(&format!("    {operand},\n"));
     }
     out.push_str("];\n\n");
 
@@ -413,31 +415,13 @@ fn generate(spec: Spec, src: &Path) -> Result<String> {
     out.push_str("        self.info().flags.contains(OpcodeFlags::CALL_LIKE)\n");
     out.push_str("    }\n");
 
-    out.push_str("\n    /// Returns operand kind descriptors for this opcode.\n");
+    out.push_str("\n    /// Returns operand schema descriptors for this opcode.\n");
     out.push_str("    #[must_use]\n");
-    out.push_str("    pub fn operand_kinds(self) -> &'static [OperandKind] {\n");
+    out.push_str("    pub fn operands(self) -> &'static [OperandSchema] {\n");
     out.push_str("        let layout = self.info().operands;\n");
     out.push_str("        let start = usize::from(layout.start);\n");
     out.push_str("        let end = start + usize::from(layout.len);\n");
-    out.push_str("        &OPERAND_KINDS[start..end]\n");
-    out.push_str("    }\n");
-
-    out.push_str("\n    /// Returns operand role descriptors for this opcode.\n");
-    out.push_str("    #[must_use]\n");
-    out.push_str("    pub fn operand_roles(self) -> &'static [OperandRole] {\n");
-    out.push_str("        let layout = self.info().operands;\n");
-    out.push_str("        let start = usize::from(layout.start);\n");
-    out.push_str("        let end = start + usize::from(layout.len);\n");
-    out.push_str("        &OPERAND_ROLES[start..end]\n");
-    out.push_str("    }\n");
-
-    out.push_str("\n    /// Returns operand encoding descriptors for this opcode.\n");
-    out.push_str("    #[must_use]\n");
-    out.push_str("    pub fn operand_encodings(self) -> &'static [OperandEncoding] {\n");
-    out.push_str("        let layout = self.info().operands;\n");
-    out.push_str("        let start = usize::from(layout.start);\n");
-    out.push_str("        let end = start + usize::from(layout.len);\n");
-    out.push_str("        &OPERAND_ENCODINGS[start..end]\n");
+    out.push_str("        &OPERANDS[start..end]\n");
     out.push_str("    }\n");
     out.push_str("}\n");
 
