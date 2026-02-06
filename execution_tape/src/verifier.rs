@@ -421,6 +421,19 @@ pub enum VerifyError {
         /// Function index within the program.
         func: u32,
     },
+
+    /// Internal error: the checked-in opcode spec disagrees with the decoder.
+    ///
+    /// This indicates a developer error (e.g. `opcodes.json` changed without regenerating tables,
+    /// or a mismatch between the schema and the hand-written decoder).
+    InternalOpcodeSchemaMismatch {
+        /// Function index within the program.
+        func: u32,
+        /// Byte offset of the instruction.
+        pc: u32,
+        /// Opcode byte.
+        opcode: u8,
+    },
 }
 
 /// Why a jump target is invalid.
@@ -609,6 +622,10 @@ impl fmt::Display for VerifyError {
                 "function {func} pc={pc} internal verifier error: inconsistent basic blocks (instrs {instr_start}..{instr_end})"
             ),
             Self::BytecodeDecode { func } => write!(f, "function {func} bytecode decode failed"),
+            Self::InternalOpcodeSchemaMismatch { func, pc, opcode } => write!(
+                f,
+                "function {func} pc={pc} internal opcode schema mismatch (opcode=0x{opcode:02X})"
+            ),
             Self::AggKindMismatch {
                 func,
                 pc,
@@ -795,6 +812,19 @@ fn verify_function_container(
 
     let decoded =
         decode_instructions(bytecode).map_err(|_| VerifyError::BytecodeDecode { func: func_id })?;
+    for di in &decoded {
+        let op = Opcode::from_u8(di.opcode).expect("decoder only emits known opcodes");
+        if op.operand_kinds() != di.instr.operand_kinds()
+            || op.operand_roles().len() != op.operand_kinds().len()
+            || op.operand_encodings() != di.instr.operand_encodings()
+        {
+            return Err(VerifyError::InternalOpcodeSchemaMismatch {
+                func: func_id,
+                pc: di.offset,
+                opcode: di.opcode,
+            });
+        }
+    }
     verify_function_bytecode(
         program, func_id, func, bytecode, arg_types, ret_types, &decoded,
     )

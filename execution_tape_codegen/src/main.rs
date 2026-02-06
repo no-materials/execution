@@ -31,6 +31,7 @@ struct OpcodeSpec {
 struct OperandSpec {
     kind: String,
     role: String,
+    encoding: String,
 }
 
 fn parse_u8_hex(s: &str) -> Result<u8> {
@@ -89,6 +90,22 @@ fn operand_role_rust(role: &str) -> Result<String> {
         }
     }
     Ok(s)
+}
+
+fn operand_encoding_rust(enc: &str) -> Result<&'static str> {
+    Ok(match enc {
+        "reg_u32_uleb" => "OperandEncoding::RegU32Uleb",
+        "reg_list_u32_uleb_count_then_regs" => "OperandEncoding::RegListU32UlebCountThenRegs",
+
+        "bool_u8" => "OperandEncoding::BoolU8",
+        "u8_raw" => "OperandEncoding::U8Raw",
+        "u32_uleb" => "OperandEncoding::U32Uleb",
+        "i64_sleb" => "OperandEncoding::I64Sleb",
+        "u64_uleb" => "OperandEncoding::U64Uleb",
+        "u64_le" => "OperandEncoding::U64Le",
+
+        other => bail!("unknown operand encoding '{other}'"),
+    })
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -204,6 +221,20 @@ fn generate(spec: Spec, src: &Path) -> Result<String> {
     out.push_str("    S,\n");
     out.push_str("}\n\n");
 
+    out.push_str("/// Operand encodings used by the bytecode codec.\n");
+    out.push_str("#[allow(missing_docs, reason = \"generated\")]\n");
+    out.push_str("#[derive(Copy, Clone, Debug, PartialEq, Eq)]\n");
+    out.push_str("pub enum OperandEncoding {\n");
+    out.push_str("    RegU32Uleb,\n");
+    out.push_str("    RegListU32UlebCountThenRegs,\n");
+    out.push_str("    BoolU8,\n");
+    out.push_str("    U8Raw,\n");
+    out.push_str("    U32Uleb,\n");
+    out.push_str("    I64Sleb,\n");
+    out.push_str("    U64Uleb,\n");
+    out.push_str("    U64Le,\n");
+    out.push_str("}\n\n");
+
     out.push_str("/// Operand layout for an opcode (indices into `OPERAND_KINDS`).\n");
     out.push_str("#[derive(Copy, Clone, Debug, PartialEq, Eq)]\n");
     out.push_str("pub struct OperandLayout {\n");
@@ -215,6 +246,7 @@ fn generate(spec: Spec, src: &Path) -> Result<String> {
 
     let mut operand_kinds: Vec<&'static str> = Vec::new();
     let mut operand_roles: Vec<String> = Vec::new();
+    let mut operand_encodings: Vec<&'static str> = Vec::new();
     let mut operand_layout_by_name: Vec<(&str, u16, u8)> = Vec::with_capacity(ops.len());
     for (_, op) in &ops {
         let start: u16 = operand_kinds
@@ -224,6 +256,7 @@ fn generate(spec: Spec, src: &Path) -> Result<String> {
         for operand in &op.operands {
             operand_kinds.push(operand_kind_rust(&operand.kind)?);
             operand_roles.push(operand_role_rust(&operand.role)?);
+            operand_encodings.push(operand_encoding_rust(&operand.encoding)?);
         }
         let len: u8 = op
             .operands
@@ -254,6 +287,13 @@ fn generate(spec: Spec, src: &Path) -> Result<String> {
     out.push_str("pub const OPERAND_ROLES: &[OperandRole] = &[\n");
     for role in &operand_roles {
         out.push_str(&format!("    {role},\n"));
+    }
+    out.push_str("];\n\n");
+
+    out.push_str("/// Flat operand encoding table indexed by `OperandLayout`.\n");
+    out.push_str("pub const OPERAND_ENCODINGS: &[OperandEncoding] = &[\n");
+    for enc in &operand_encodings {
+        out.push_str(&format!("    {enc},\n"));
     }
     out.push_str("];\n\n");
 
@@ -389,6 +429,15 @@ fn generate(spec: Spec, src: &Path) -> Result<String> {
     out.push_str("        let start = usize::from(layout.start);\n");
     out.push_str("        let end = start + usize::from(layout.len);\n");
     out.push_str("        &OPERAND_ROLES[start..end]\n");
+    out.push_str("    }\n");
+
+    out.push_str("\n    /// Returns operand encoding descriptors for this opcode.\n");
+    out.push_str("    #[must_use]\n");
+    out.push_str("    pub fn operand_encodings(self) -> &'static [OperandEncoding] {\n");
+    out.push_str("        let layout = self.info().operands;\n");
+    out.push_str("        let start = usize::from(layout.start);\n");
+    out.push_str("        let end = start + usize::from(layout.len);\n");
+    out.push_str("        &OPERAND_ENCODINGS[start..end]\n");
     out.push_str("    }\n");
     out.push_str("}\n");
 

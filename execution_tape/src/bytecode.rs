@@ -10,7 +10,7 @@
 use alloc::vec::Vec;
 
 use crate::format::{DecodeError, Reader};
-use crate::opcode::{Opcode, OperandKind};
+use crate::opcode::{Opcode, OperandEncoding, OperandKind};
 use crate::program::{ConstId, HostSigId};
 use crate::program::{ElemTypeId, TypeId};
 use crate::value::FuncId;
@@ -367,6 +367,86 @@ const OPERANDS_REG_ELEM_TYPE_ID_REG_LIST: &[OperandKind] = &[
     OperandKind::RegList,
 ];
 
+const ENCODINGS_NONE: &[OperandEncoding] = &[];
+const ENCODINGS_REG: &[OperandEncoding] = &[OperandEncoding::RegU32Uleb];
+const ENCODINGS_REG_REG: &[OperandEncoding] =
+    &[OperandEncoding::RegU32Uleb, OperandEncoding::RegU32Uleb];
+const ENCODINGS_REG_REG_REG: &[OperandEncoding] = &[
+    OperandEncoding::RegU32Uleb,
+    OperandEncoding::RegU32Uleb,
+    OperandEncoding::RegU32Uleb,
+];
+const ENCODINGS_REG_REG_REG_REG: &[OperandEncoding] = &[
+    OperandEncoding::RegU32Uleb,
+    OperandEncoding::RegU32Uleb,
+    OperandEncoding::RegU32Uleb,
+    OperandEncoding::RegU32Uleb,
+];
+const ENCODINGS_IMM_U32: &[OperandEncoding] = &[OperandEncoding::U32Uleb];
+const ENCODINGS_REG_IMM_BOOL: &[OperandEncoding] =
+    &[OperandEncoding::RegU32Uleb, OperandEncoding::BoolU8];
+const ENCODINGS_REG_IMM_I64: &[OperandEncoding] =
+    &[OperandEncoding::RegU32Uleb, OperandEncoding::I64Sleb];
+const ENCODINGS_REG_IMM_U64_ULEB: &[OperandEncoding] =
+    &[OperandEncoding::RegU32Uleb, OperandEncoding::U64Uleb];
+const ENCODINGS_REG_IMM_U64_LE: &[OperandEncoding] =
+    &[OperandEncoding::RegU32Uleb, OperandEncoding::U64Le];
+const ENCODINGS_REG_IMM_I64_IMM_U8: &[OperandEncoding] = &[
+    OperandEncoding::RegU32Uleb,
+    OperandEncoding::I64Sleb,
+    OperandEncoding::U8Raw,
+];
+const ENCODINGS_REG_U32: &[OperandEncoding] =
+    &[OperandEncoding::RegU32Uleb, OperandEncoding::U32Uleb];
+const ENCODINGS_REG_REG_U32: &[OperandEncoding] = &[
+    OperandEncoding::RegU32Uleb,
+    OperandEncoding::RegU32Uleb,
+    OperandEncoding::U32Uleb,
+];
+const ENCODINGS_REG_PC_PC: &[OperandEncoding] = &[
+    OperandEncoding::RegU32Uleb,
+    OperandEncoding::U32Uleb,
+    OperandEncoding::U32Uleb,
+];
+const ENCODINGS_PC: &[OperandEncoding] = &[OperandEncoding::U32Uleb];
+const ENCODINGS_REG_REG_IMM_U8: &[OperandEncoding] = &[
+    OperandEncoding::RegU32Uleb,
+    OperandEncoding::RegU32Uleb,
+    OperandEncoding::U8Raw,
+];
+const ENCODINGS_CALL_LIKE_FUNC: &[OperandEncoding] = &[
+    OperandEncoding::RegU32Uleb,
+    OperandEncoding::U32Uleb,
+    OperandEncoding::RegU32Uleb,
+    OperandEncoding::RegListU32UlebCountThenRegs,
+    OperandEncoding::RegListU32UlebCountThenRegs,
+];
+const ENCODINGS_CALL_LIKE_HOST: &[OperandEncoding] = &[
+    OperandEncoding::RegU32Uleb,
+    OperandEncoding::U32Uleb,
+    OperandEncoding::RegU32Uleb,
+    OperandEncoding::RegListU32UlebCountThenRegs,
+    OperandEncoding::RegListU32UlebCountThenRegs,
+];
+const ENCODINGS_RET: &[OperandEncoding] = &[
+    OperandEncoding::RegU32Uleb,
+    OperandEncoding::RegListU32UlebCountThenRegs,
+];
+const ENCODINGS_TUPLE_NEW: &[OperandEncoding] = &[
+    OperandEncoding::RegU32Uleb,
+    OperandEncoding::RegListU32UlebCountThenRegs,
+];
+const ENCODINGS_STRUCT_NEW: &[OperandEncoding] = &[
+    OperandEncoding::RegU32Uleb,
+    OperandEncoding::U32Uleb,
+    OperandEncoding::RegListU32UlebCountThenRegs,
+];
+const ENCODINGS_ARRAY_NEW: &[OperandEncoding] = &[
+    OperandEncoding::RegU32Uleb,
+    OperandEncoding::U32Uleb,
+    OperandEncoding::RegListU32UlebCountThenRegs,
+];
+
 impl Instr {
     /// Returns operand kind descriptors for this decoded instruction.
     ///
@@ -484,6 +564,125 @@ impl Instr {
             Self::TupleNew { .. } => OPERANDS_REG_REG_LIST,
             Self::StructNew { .. } => OPERANDS_REG_TYPE_ID_REG_LIST,
             Self::ArrayNew { .. } => OPERANDS_REG_ELEM_TYPE_ID_REG_LIST,
+        }
+    }
+
+    /// Returns operand encoding descriptors for this decoded instruction.
+    ///
+    /// This is intended for internal consistency checks between the opcode spec and the
+    /// hand-written decoder.
+    #[must_use]
+    pub(crate) fn operand_encodings(&self) -> &'static [OperandEncoding] {
+        match self {
+            Self::Nop => ENCODINGS_NONE,
+            Self::Mov { .. } => ENCODINGS_REG_REG,
+            Self::Trap { .. } => ENCODINGS_IMM_U32,
+
+            Self::ConstUnit { .. } => ENCODINGS_REG,
+            Self::ConstBool { .. } => ENCODINGS_REG_IMM_BOOL,
+            Self::ConstI64 { .. } => ENCODINGS_REG_IMM_I64,
+            Self::ConstU64 { .. } => ENCODINGS_REG_IMM_U64_ULEB,
+            Self::ConstF64 { .. } => ENCODINGS_REG_IMM_U64_LE,
+            Self::ConstDecimal { .. } => ENCODINGS_REG_IMM_I64_IMM_U8,
+            Self::ConstPool { .. } => ENCODINGS_REG_U32,
+
+            Self::DecAdd { .. }
+            | Self::DecSub { .. }
+            | Self::DecMul { .. }
+            | Self::F64Add { .. }
+            | Self::F64Sub { .. }
+            | Self::F64Mul { .. }
+            | Self::F64Div { .. }
+            | Self::F64Min { .. }
+            | Self::F64Max { .. }
+            | Self::F64MinNum { .. }
+            | Self::F64MaxNum { .. }
+            | Self::F64Rem { .. }
+            | Self::I64Add { .. }
+            | Self::I64Sub { .. }
+            | Self::I64Mul { .. }
+            | Self::U64Add { .. }
+            | Self::U64Sub { .. }
+            | Self::U64Mul { .. }
+            | Self::U64And { .. }
+            | Self::U64Or { .. }
+            | Self::U64Xor { .. }
+            | Self::U64Shl { .. }
+            | Self::U64Shr { .. }
+            | Self::U64Div { .. }
+            | Self::U64Rem { .. }
+            | Self::I64Div { .. }
+            | Self::I64Rem { .. }
+            | Self::I64Eq { .. }
+            | Self::I64Lt { .. }
+            | Self::I64Gt { .. }
+            | Self::I64Le { .. }
+            | Self::I64Ge { .. }
+            | Self::U64Eq { .. }
+            | Self::U64Lt { .. }
+            | Self::U64Gt { .. }
+            | Self::U64Le { .. }
+            | Self::U64Ge { .. }
+            | Self::F64Eq { .. }
+            | Self::F64Lt { .. }
+            | Self::F64Gt { .. }
+            | Self::F64Le { .. }
+            | Self::F64Ge { .. }
+            | Self::BoolAnd { .. }
+            | Self::BoolOr { .. }
+            | Self::BoolXor { .. }
+            | Self::I64And { .. }
+            | Self::I64Or { .. }
+            | Self::I64Xor { .. }
+            | Self::I64Shl { .. }
+            | Self::I64Shr { .. }
+            | Self::BytesEq { .. }
+            | Self::StrEq { .. }
+            | Self::BytesConcat { .. }
+            | Self::StrConcat { .. }
+            | Self::BytesGet { .. }
+            | Self::ArrayGet { .. } => ENCODINGS_REG_REG_REG,
+
+            Self::F64Neg { .. }
+            | Self::F64Abs { .. }
+            | Self::F64ToBits { .. }
+            | Self::F64FromBits { .. }
+            | Self::U64ToI64 { .. }
+            | Self::I64ToU64 { .. }
+            | Self::I64ToF64 { .. }
+            | Self::U64ToF64 { .. }
+            | Self::F64ToI64 { .. }
+            | Self::F64ToU64 { .. }
+            | Self::DecToI64 { .. }
+            | Self::DecToU64 { .. }
+            | Self::BoolNot { .. }
+            | Self::StrToBytes { .. }
+            | Self::BytesToStr { .. }
+            | Self::TupleLen { .. }
+            | Self::StructFieldCount { .. }
+            | Self::ArrayLen { .. }
+            | Self::BytesLen { .. }
+            | Self::StrLen { .. } => ENCODINGS_REG_REG,
+
+            Self::I64ToDec { .. } | Self::U64ToDec { .. } => ENCODINGS_REG_REG_IMM_U8,
+            Self::Select { .. } | Self::BytesSlice { .. } | Self::StrSlice { .. } => {
+                ENCODINGS_REG_REG_REG_REG
+            }
+            Self::BytesGetImm { .. } | Self::ArrayGetImm { .. } | Self::TupleGet { .. } => {
+                ENCODINGS_REG_REG_U32
+            }
+            Self::StructGet { .. } => ENCODINGS_REG_REG_U32,
+
+            Self::Br { .. } => ENCODINGS_REG_PC_PC,
+            Self::Jmp { .. } => ENCODINGS_PC,
+
+            Self::Call { .. } => ENCODINGS_CALL_LIKE_FUNC,
+            Self::HostCall { .. } => ENCODINGS_CALL_LIKE_HOST,
+            Self::Ret { .. } => ENCODINGS_RET,
+
+            Self::TupleNew { .. } => ENCODINGS_TUPLE_NEW,
+            Self::StructNew { .. } => ENCODINGS_STRUCT_NEW,
+            Self::ArrayNew { .. } => ENCODINGS_ARRAY_NEW,
         }
     }
 
@@ -1424,6 +1623,12 @@ pub(crate) fn decode_instructions(bytes: &[u8]) -> Result<Vec<DecodedInstr>, Byt
             instr.operand_kinds(),
             "opcode schema drift for {op:?} at pc={offset}"
         );
+        #[cfg(debug_assertions)]
+        debug_assert_eq!(
+            op.operand_encodings(),
+            instr.operand_encodings(),
+            "opcode encoding schema drift for {op:?} at pc={offset}"
+        );
 
         out.push(DecodedInstr {
             offset,
@@ -1742,9 +1947,19 @@ mod tests {
                 "schema mismatch (kinds vs roles) for {op:?}"
             );
             assert_eq!(
+                op.operand_kinds().len(),
+                op.operand_encodings().len(),
+                "schema mismatch (kinds vs encodings) for {op:?}"
+            );
+            assert_eq!(
                 op.operand_kinds(),
                 instr.operand_kinds(),
                 "opcode operand schema drift for {op:?}"
+            );
+            assert_eq!(
+                op.operand_encodings(),
+                instr.operand_encodings(),
+                "opcode encoding schema drift for {op:?}"
             );
         }
     }
