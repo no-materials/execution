@@ -1,0 +1,2973 @@
+{
+  "version": 1,
+  "opcodes": [
+    {
+      "name": "Nop",
+      "mnemonic": "nop",
+      "byte": "0x00",
+      "terminator": false,
+      "flags": [],
+      "doc": "No-op.",
+      "operands": []
+    },
+    {
+      "name": "Mov",
+      "mnemonic": "mov",
+      "byte": "0x01",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = src`.",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "src",
+          "encoding": "reg_u32_uleb",
+          "field": "src",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "Trap",
+      "mnemonic": "trap",
+      "byte": "0x02",
+      "terminator": true,
+      "flags": [],
+      "doc": "Trap unconditionally with a trap code.",
+      "operands": [
+        {
+          "kind": "imm_u32",
+          "role": "trap_code",
+          "encoding": "u32_uleb",
+          "field": "code"
+        }
+      ]
+    },
+    {
+      "name": "ConstUnit",
+      "mnemonic": "const.unit",
+      "byte": "0x10",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = ()`.",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        }
+      ]
+    },
+    {
+      "name": "ConstBool",
+      "mnemonic": "const.bool",
+      "byte": "0x11",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = bool`.",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "imm_bool",
+          "role": "imm",
+          "encoding": "bool_u8",
+          "field": "imm"
+        }
+      ]
+    },
+    {
+      "name": "ConstI64",
+      "mnemonic": "const.i64",
+      "byte": "0x12",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = i64`.",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "imm_i64",
+          "role": "imm",
+          "encoding": "i64_sleb",
+          "field": "imm"
+        }
+      ]
+    },
+    {
+      "name": "ConstU64",
+      "mnemonic": "const.u64",
+      "byte": "0x13",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = u64`.",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "imm_u64",
+          "role": "imm",
+          "encoding": "u64_uleb",
+          "field": "imm"
+        }
+      ]
+    },
+    {
+      "name": "ConstF64",
+      "mnemonic": "const.f64",
+      "byte": "0x14",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = f64` encoded as raw IEEE bits.",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "imm_u64",
+          "role": "bits",
+          "encoding": "u64_le",
+          "field": "bits"
+        }
+      ]
+    },
+    {
+      "name": "ConstDecimal",
+      "mnemonic": "const.decimal",
+      "byte": "0x15",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = Decimal { mantissa, scale }`.",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "imm_i64",
+          "role": "mantissa",
+          "encoding": "i64_sleb",
+          "field": "mantissa"
+        },
+        {
+          "kind": "imm_u8",
+          "role": "scale",
+          "encoding": "u8_raw",
+          "field": "scale"
+        }
+      ]
+    },
+    {
+      "name": "ConstPool",
+      "mnemonic": "const.pool",
+      "byte": "0x16",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = const_pool[idx]`.",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "const_id",
+          "role": "const",
+          "encoding": "u32_uleb",
+          "field": "idx"
+        }
+      ]
+    },
+    {
+      "name": "DecAdd",
+      "mnemonic": "dec.add",
+      "byte": "0x17",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = a + b` (`Decimal`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "DecSub",
+      "mnemonic": "dec.sub",
+      "byte": "0x18",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = a - b` (`Decimal`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "DecMul",
+      "mnemonic": "dec.mul",
+      "byte": "0x19",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = a * b` (`Decimal`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "F64Add",
+      "mnemonic": "f64.add",
+      "byte": "0x1A",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = a + b` (`f64`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "F64Sub",
+      "mnemonic": "f64.sub",
+      "byte": "0x1B",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = a - b` (`f64`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "F64Mul",
+      "mnemonic": "f64.mul",
+      "byte": "0x1C",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = a * b` (`f64`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "I64Add",
+      "mnemonic": "i64.add",
+      "byte": "0x20",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = a + b` (`i64`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "I64Sub",
+      "mnemonic": "i64.sub",
+      "byte": "0x21",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = a - b` (`i64`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "I64Mul",
+      "mnemonic": "i64.mul",
+      "byte": "0x22",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = a * b` (`i64`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "U64Add",
+      "mnemonic": "u64.add",
+      "byte": "0x23",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = a + b` (`u64`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "U64Sub",
+      "mnemonic": "u64.sub",
+      "byte": "0x24",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = a - b` (`u64`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "U64Mul",
+      "mnemonic": "u64.mul",
+      "byte": "0x25",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = a * b` (`u64`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "U64And",
+      "mnemonic": "u64.and",
+      "byte": "0x26",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = a & b` (`u64`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "U64Or",
+      "mnemonic": "u64.or",
+      "byte": "0x27",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = a | b` (`u64`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "I64Eq",
+      "mnemonic": "i64.eq",
+      "byte": "0x28",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = (a == b)` (`i64` -> `bool`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "I64Lt",
+      "mnemonic": "i64.lt",
+      "byte": "0x29",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = (a < b)` (`i64` -> `bool`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "U64Eq",
+      "mnemonic": "u64.eq",
+      "byte": "0x2A",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = (a == b)` (`u64` -> `bool`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "U64Lt",
+      "mnemonic": "u64.lt",
+      "byte": "0x2B",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = (a < b)` (`u64` -> `bool`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "U64Xor",
+      "mnemonic": "u64.xor",
+      "byte": "0x2C",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = a ^ b` (`u64`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "U64Shl",
+      "mnemonic": "u64.shl",
+      "byte": "0x2D",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = a << (b & 63)` (`u64`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "U64Shr",
+      "mnemonic": "u64.shr",
+      "byte": "0x2E",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = a >> (b & 63)` (`u64`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "U64Gt",
+      "mnemonic": "u64.gt",
+      "byte": "0x2F",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = (a > b)` (`u64` -> `bool`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "BoolNot",
+      "mnemonic": "bool.not",
+      "byte": "0x30",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = !a` (`bool`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "U64Le",
+      "mnemonic": "u64.le",
+      "byte": "0x31",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = (a <= b)` (`u64` -> `bool`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "U64Ge",
+      "mnemonic": "u64.ge",
+      "byte": "0x32",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = (a >= b)` (`u64` -> `bool`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "I64And",
+      "mnemonic": "i64.and",
+      "byte": "0x33",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = a & b` (`i64`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "U64ToI64",
+      "mnemonic": "u64.to_i64",
+      "byte": "0x34",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = u64_to_i64(a)` (traps on overflow).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "I64ToU64",
+      "mnemonic": "i64.to_u64",
+      "byte": "0x35",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = i64_to_u64(a)` (traps on negative).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "I64Or",
+      "mnemonic": "i64.or",
+      "byte": "0x36",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = a | b` (`i64`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "I64Xor",
+      "mnemonic": "i64.xor",
+      "byte": "0x37",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = a ^ b` (`i64`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "Select",
+      "mnemonic": "select",
+      "byte": "0x38",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = if cond { a } else { b }`.",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "cond",
+          "encoding": "reg_u32_uleb",
+          "field": "cond",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "I64Gt",
+      "mnemonic": "i64.gt",
+      "byte": "0x39",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = (a > b)` (`i64` -> `bool`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "I64Le",
+      "mnemonic": "i64.le",
+      "byte": "0x3A",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = (a <= b)` (`i64` -> `bool`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "I64Ge",
+      "mnemonic": "i64.ge",
+      "byte": "0x3B",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = (a >= b)` (`i64` -> `bool`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "I64Shl",
+      "mnemonic": "i64.shl",
+      "byte": "0x3C",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = a << (b & 63)` (`i64`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "I64Shr",
+      "mnemonic": "i64.shr",
+      "byte": "0x3D",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = a >> (b & 63)` (`i64`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "Br",
+      "mnemonic": "br",
+      "byte": "0x40",
+      "terminator": true,
+      "flags": [],
+      "doc": "Branch based on `cond` to `pc_true` or `pc_false` (byte offsets).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "cond",
+          "encoding": "reg_u32_uleb",
+          "field": "cond",
+          "access": "read"
+        },
+        {
+          "kind": "pc",
+          "role": "pc_true",
+          "encoding": "u32_uleb",
+          "field": "pc_true"
+        },
+        {
+          "kind": "pc",
+          "role": "pc_false",
+          "encoding": "u32_uleb",
+          "field": "pc_false"
+        }
+      ]
+    },
+    {
+      "name": "Jmp",
+      "mnemonic": "jmp",
+      "byte": "0x41",
+      "terminator": true,
+      "flags": [],
+      "doc": "Jump to `pc_target` (byte offset).",
+      "operands": [
+        {
+          "kind": "pc",
+          "role": "pc_target",
+          "encoding": "u32_uleb",
+          "field": "pc_target"
+        }
+      ]
+    },
+    {
+      "name": "Call",
+      "mnemonic": "call",
+      "byte": "0x50",
+      "terminator": false,
+      "flags": [
+        "call_like"
+      ],
+      "doc": "Call a function.",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "eff_out",
+          "encoding": "reg_u32_uleb",
+          "field": "eff_out",
+          "access": "write"
+        },
+        {
+          "kind": "func_id",
+          "role": "func",
+          "encoding": "u32_uleb",
+          "field": "func_id"
+        },
+        {
+          "kind": "reg",
+          "role": "eff_in",
+          "encoding": "reg_u32_uleb",
+          "field": "eff_in",
+          "access": "read"
+        },
+        {
+          "kind": "reg_list",
+          "role": "args",
+          "encoding": "reg_list_u32_uleb_count_then_regs",
+          "field": "args",
+          "access": "read"
+        },
+        {
+          "kind": "reg_list",
+          "role": "rets",
+          "encoding": "reg_list_u32_uleb_count_then_regs",
+          "field": "rets",
+          "access": "write"
+        }
+      ]
+    },
+    {
+      "name": "Ret",
+      "mnemonic": "ret",
+      "byte": "0x51",
+      "terminator": true,
+      "flags": [
+        "call_like"
+      ],
+      "doc": "Return from the current function.",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "eff_in",
+          "encoding": "reg_u32_uleb",
+          "field": "eff_in",
+          "access": "read"
+        },
+        {
+          "kind": "reg_list",
+          "role": "rets",
+          "encoding": "reg_list_u32_uleb_count_then_regs",
+          "field": "rets",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "HostCall",
+      "mnemonic": "host_call",
+      "byte": "0x52",
+      "terminator": false,
+      "flags": [
+        "call_like"
+      ],
+      "doc": "Call a host function.",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "eff_out",
+          "encoding": "reg_u32_uleb",
+          "field": "eff_out",
+          "access": "write"
+        },
+        {
+          "kind": "host_sig_id",
+          "role": "host_sig",
+          "encoding": "u32_uleb",
+          "field": "host_sig"
+        },
+        {
+          "kind": "reg",
+          "role": "eff_in",
+          "encoding": "reg_u32_uleb",
+          "field": "eff_in",
+          "access": "read"
+        },
+        {
+          "kind": "reg_list",
+          "role": "args",
+          "encoding": "reg_list_u32_uleb_count_then_regs",
+          "field": "args",
+          "access": "read"
+        },
+        {
+          "kind": "reg_list",
+          "role": "rets",
+          "encoding": "reg_list_u32_uleb_count_then_regs",
+          "field": "rets",
+          "access": "write"
+        }
+      ]
+    },
+    {
+      "name": "TupleNew",
+      "mnemonic": "tuple.new",
+      "byte": "0x60",
+      "terminator": false,
+      "flags": [],
+      "doc": "Allocate a tuple aggregate.",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg_list",
+          "role": "values",
+          "encoding": "reg_list_u32_uleb_count_then_regs",
+          "field": "values",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "TupleGet",
+      "mnemonic": "tuple.get",
+      "byte": "0x61",
+      "terminator": false,
+      "flags": [],
+      "doc": "Read tuple element at an immediate index.",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "tuple",
+          "encoding": "reg_u32_uleb",
+          "field": "tuple",
+          "access": "read"
+        },
+        {
+          "kind": "imm_u32",
+          "role": "index",
+          "encoding": "u32_uleb",
+          "field": "index"
+        }
+      ]
+    },
+    {
+      "name": "StructNew",
+      "mnemonic": "struct.new",
+      "byte": "0x62",
+      "terminator": false,
+      "flags": [],
+      "doc": "Allocate a struct aggregate.",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "type_id",
+          "role": "type",
+          "encoding": "u32_uleb",
+          "field": "type_id"
+        },
+        {
+          "kind": "reg_list",
+          "role": "values",
+          "encoding": "reg_list_u32_uleb_count_then_regs",
+          "field": "values",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "StructGet",
+      "mnemonic": "struct.get",
+      "byte": "0x63",
+      "terminator": false,
+      "flags": [],
+      "doc": "Read struct field at an immediate index.",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "st",
+          "encoding": "reg_u32_uleb",
+          "field": "st",
+          "access": "read"
+        },
+        {
+          "kind": "imm_u32",
+          "role": "field_index",
+          "encoding": "u32_uleb",
+          "field": "field_index"
+        }
+      ]
+    },
+    {
+      "name": "ArrayNew",
+      "mnemonic": "array.new",
+      "byte": "0x64",
+      "terminator": false,
+      "flags": [],
+      "doc": "Allocate an array aggregate.",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "elem_type_id",
+          "role": "elem_type",
+          "encoding": "u32_uleb",
+          "field": "elem_type_id"
+        },
+        {
+          "kind": "reg_list",
+          "role": "values",
+          "encoding": "reg_list_u32_uleb_count_then_regs",
+          "field": "values",
+          "count_field": "len",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "ArrayLen",
+      "mnemonic": "array.len",
+      "byte": "0x65",
+      "terminator": false,
+      "flags": [],
+      "doc": "Read array length.",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "arr",
+          "encoding": "reg_u32_uleb",
+          "field": "arr",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "ArrayGet",
+      "mnemonic": "array.get",
+      "byte": "0x66",
+      "terminator": false,
+      "flags": [],
+      "doc": "Read array element at an index register.",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "arr",
+          "encoding": "reg_u32_uleb",
+          "field": "arr",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "index",
+          "encoding": "reg_u32_uleb",
+          "field": "index",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "TupleLen",
+      "mnemonic": "tuple.len",
+      "byte": "0x67",
+      "terminator": false,
+      "flags": [],
+      "doc": "Read tuple length.",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "tuple",
+          "encoding": "reg_u32_uleb",
+          "field": "tuple",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "StructFieldCount",
+      "mnemonic": "struct.field_count",
+      "byte": "0x68",
+      "terminator": false,
+      "flags": [],
+      "doc": "Read struct field count.",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "st",
+          "encoding": "reg_u32_uleb",
+          "field": "st",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "ArrayGetImm",
+      "mnemonic": "array.get_imm",
+      "byte": "0x69",
+      "terminator": false,
+      "flags": [],
+      "doc": "Read array element at an immediate index.",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "arr",
+          "encoding": "reg_u32_uleb",
+          "field": "arr",
+          "access": "read"
+        },
+        {
+          "kind": "imm_u32",
+          "role": "index",
+          "encoding": "u32_uleb",
+          "field": "index"
+        }
+      ]
+    },
+    {
+      "name": "BytesLen",
+      "mnemonic": "bytes.len",
+      "byte": "0x6A",
+      "terminator": false,
+      "flags": [],
+      "doc": "Read byte-string length.",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "bytes",
+          "encoding": "reg_u32_uleb",
+          "field": "bytes",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "StrLen",
+      "mnemonic": "str.len",
+      "byte": "0x6B",
+      "terminator": false,
+      "flags": [],
+      "doc": "Read UTF-8 string length (in bytes).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "s",
+          "encoding": "reg_u32_uleb",
+          "field": "s",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "I64Div",
+      "mnemonic": "i64.div",
+      "byte": "0x6C",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = a / b` (`i64`, traps on divide-by-zero and `i64::MIN / -1`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "I64Rem",
+      "mnemonic": "i64.rem",
+      "byte": "0x6D",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = a % b` (`i64`, traps on divide-by-zero and `i64::MIN % -1`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "U64Div",
+      "mnemonic": "u64.div",
+      "byte": "0x6E",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = a / b` (`u64`, traps on divide-by-zero).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "U64Rem",
+      "mnemonic": "u64.rem",
+      "byte": "0x6F",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = a % b` (`u64`, traps on divide-by-zero).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "I64ToF64",
+      "mnemonic": "i64.to_f64",
+      "byte": "0x70",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = (a as f64)` (`i64` to `f64`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "U64ToF64",
+      "mnemonic": "u64.to_f64",
+      "byte": "0x71",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = (a as f64)` (`u64` to `f64`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "F64ToI64",
+      "mnemonic": "f64.to_i64",
+      "byte": "0x72",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = trunc(a)` (`f64` to `i64`, traps on NaN/inf/out-of-range).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "F64ToU64",
+      "mnemonic": "f64.to_u64",
+      "byte": "0x73",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = trunc(a)` (`f64` to `u64`, traps on NaN/inf/out-of-range/negative).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "DecToI64",
+      "mnemonic": "dec.to_i64",
+      "byte": "0x74",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = a.mantissa` (`Decimal` to `i64`, traps if `scale != 0`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "DecToU64",
+      "mnemonic": "dec.to_u64",
+      "byte": "0x75",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = a.mantissa` (`Decimal` to `u64`, traps if `scale != 0` or mantissa < 0).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "I64ToDec",
+      "mnemonic": "i64.to_dec",
+      "byte": "0x76",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = Decimal { mantissa: a * 10^scale, scale }` (traps on overflow).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "imm_u8",
+          "role": "scale",
+          "encoding": "u8_raw",
+          "field": "scale"
+        }
+      ]
+    },
+    {
+      "name": "U64ToDec",
+      "mnemonic": "u64.to_dec",
+      "byte": "0x77",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = Decimal { mantissa: a * 10^scale, scale }` (traps on overflow).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "imm_u8",
+          "role": "scale",
+          "encoding": "u8_raw",
+          "field": "scale"
+        }
+      ]
+    },
+    {
+      "name": "BytesEq",
+      "mnemonic": "bytes.eq",
+      "byte": "0x78",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = (a == b)` (`bytes` -> `bool`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "StrEq",
+      "mnemonic": "str.eq",
+      "byte": "0x79",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = (a == b)` (`str` -> `bool`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "BytesConcat",
+      "mnemonic": "bytes.concat",
+      "byte": "0x7A",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = concat(a, b)` (`bytes`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "StrConcat",
+      "mnemonic": "str.concat",
+      "byte": "0x7B",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = concat(a, b)` (`str`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "BytesGet",
+      "mnemonic": "bytes.get",
+      "byte": "0x7C",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = bytes[index]` (returns `u64` in `0..=255`, traps on OOB).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "bytes",
+          "encoding": "reg_u32_uleb",
+          "field": "bytes",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "index",
+          "encoding": "reg_u32_uleb",
+          "field": "index",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "BytesGetImm",
+      "mnemonic": "bytes.get_imm",
+      "byte": "0x7D",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = bytes[index]` (returns `u64` in `0..=255`, traps on OOB).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "bytes",
+          "encoding": "reg_u32_uleb",
+          "field": "bytes",
+          "access": "read"
+        },
+        {
+          "kind": "imm_u32",
+          "role": "index",
+          "encoding": "u32_uleb",
+          "field": "index"
+        }
+      ]
+    },
+    {
+      "name": "BytesSlice",
+      "mnemonic": "bytes.slice",
+      "byte": "0x7E",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = bytes[start..end]` (traps on invalid range).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "bytes",
+          "encoding": "reg_u32_uleb",
+          "field": "bytes",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "start",
+          "encoding": "reg_u32_uleb",
+          "field": "start",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "end",
+          "encoding": "reg_u32_uleb",
+          "field": "end",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "StrSlice",
+      "mnemonic": "str.slice",
+      "byte": "0x7F",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = s[start..end]` (byte indices; traps on invalid range or non-boundaries).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "s",
+          "encoding": "reg_u32_uleb",
+          "field": "s",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "start",
+          "encoding": "reg_u32_uleb",
+          "field": "start",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "end",
+          "encoding": "reg_u32_uleb",
+          "field": "end",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "StrToBytes",
+      "mnemonic": "str.to_bytes",
+      "byte": "0x80",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = s.as_bytes().to_vec()`.",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "s",
+          "encoding": "reg_u32_uleb",
+          "field": "s",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "BytesToStr",
+      "mnemonic": "bytes.to_str",
+      "byte": "0x81",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = String::from_utf8(bytes)` (traps on invalid UTF-8).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "bytes",
+          "encoding": "reg_u32_uleb",
+          "field": "bytes",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "F64Div",
+      "mnemonic": "f64.div",
+      "byte": "0x82",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = a / b` (`f64`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "F64Eq",
+      "mnemonic": "f64.eq",
+      "byte": "0x83",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = (a == b)` (`f64` -> `bool`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "F64Lt",
+      "mnemonic": "f64.lt",
+      "byte": "0x84",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = (a < b)` (`f64` -> `bool`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "F64Gt",
+      "mnemonic": "f64.gt",
+      "byte": "0x85",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = (a > b)` (`f64` -> `bool`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "F64Le",
+      "mnemonic": "f64.le",
+      "byte": "0x86",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = (a <= b)` (`f64` -> `bool`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "F64Ge",
+      "mnemonic": "f64.ge",
+      "byte": "0x87",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = (a >= b)` (`f64` -> `bool`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "BoolAnd",
+      "mnemonic": "bool.and",
+      "byte": "0x88",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = a & b` (`bool`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "BoolOr",
+      "mnemonic": "bool.or",
+      "byte": "0x89",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = a | b` (`bool`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "BoolXor",
+      "mnemonic": "bool.xor",
+      "byte": "0x8A",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = a ^ b` (`bool`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "F64Neg",
+      "mnemonic": "f64.neg",
+      "byte": "0x8B",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = -a` (`f64`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "F64Abs",
+      "mnemonic": "f64.abs",
+      "byte": "0x8C",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = abs(a)` (`f64`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "F64Min",
+      "mnemonic": "f64.min",
+      "byte": "0x8D",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = min(a, b)` (`f64`, NaN-propagating).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "F64Max",
+      "mnemonic": "f64.max",
+      "byte": "0x8E",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = max(a, b)` (`f64`, NaN-propagating).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "F64MinNum",
+      "mnemonic": "f64.min_num",
+      "byte": "0x8F",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = min_num(a, b)` (`f64`, number-favoring).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "F64MaxNum",
+      "mnemonic": "f64.max_num",
+      "byte": "0x90",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = max_num(a, b)` (`f64`, number-favoring).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "F64Rem",
+      "mnemonic": "f64.rem",
+      "byte": "0x91",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = a % b` (`f64`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        },
+        {
+          "kind": "reg",
+          "role": "b",
+          "encoding": "reg_u32_uleb",
+          "field": "b",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "F64ToBits",
+      "mnemonic": "f64.to_bits",
+      "byte": "0x92",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = f64_to_bits(a)` (`f64` -> `u64`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "name": "F64FromBits",
+      "mnemonic": "f64.from_bits",
+      "byte": "0x93",
+      "terminator": false,
+      "flags": [],
+      "doc": "`dst = f64_from_bits(a)` (`u64` -> `f64`).",
+      "operands": [
+        {
+          "kind": "reg",
+          "role": "dst",
+          "encoding": "reg_u32_uleb",
+          "field": "dst",
+          "access": "write"
+        },
+        {
+          "kind": "reg",
+          "role": "a",
+          "encoding": "reg_u32_uleb",
+          "field": "a",
+          "access": "read"
+        }
+      ]
+    }
+  ]
+}

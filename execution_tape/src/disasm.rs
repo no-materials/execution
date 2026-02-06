@@ -22,7 +22,7 @@ use crate::bytecode::{
     BytecodeError, DecodedInstr, Instr, ReadsIter, WritesIter, decode_instructions,
 };
 use crate::format::DecodeError;
-use crate::opcode::Opcode;
+use crate::opcode::{Opcode, OperandRole};
 use crate::program::{ConstId, ElemTypeId, HostSigId, Program, TypeId};
 use crate::value::FuncId;
 use crate::verifier::VerifiedProgram;
@@ -418,24 +418,80 @@ impl<'a> InstrView<'a> {
     /// Optional index-like immediate operand (const pool, host sig table, type ids, etc.).
     #[must_use]
     pub fn input_index(&self) -> Option<InputIndex> {
-        match &self.decoded.instr {
-            Instr::Trap { code } => Some(InputIndex::TrapCode(*code)),
-            Instr::ConstPool { idx, .. } => Some(InputIndex::Const(*idx)),
-            Instr::HostCall { host_sig, .. } => Some(InputIndex::HostSig(*host_sig)),
-            Instr::Call { func_id, .. } => Some(InputIndex::Func(*func_id)),
-            Instr::StructNew { type_id, .. } => Some(InputIndex::Type(*type_id)),
-            Instr::ArrayNew { elem_type_id, .. } => Some(InputIndex::ElemType(*elem_type_id)),
-            Instr::TupleGet { index, .. }
-            | Instr::StructGet {
-                field_index: index, ..
-            }
-            | Instr::ArrayGetImm { index, .. }
-            | Instr::BytesGetImm { index, .. } => Some(InputIndex::Index(*index)),
-            Instr::I64ToDec { scale, .. } | Instr::U64ToDec { scale, .. } => {
-                Some(InputIndex::Index(u32::from(*scale)))
-            }
-            _ => None,
+        let operands = self.opcode().operands();
+        // Keep the behavior stable: if there are multiple index-like roles, prefer the first one.
+        if operands
+            .iter()
+            .any(|o| matches!(o.role, OperandRole::TrapCode))
+        {
+            let Instr::Trap { code } = &self.decoded.instr else {
+                return None;
+            };
+            return Some(InputIndex::TrapCode(*code));
         }
+        if operands
+            .iter()
+            .any(|o| matches!(o.role, OperandRole::Const))
+        {
+            let Instr::ConstPool { idx, .. } = &self.decoded.instr else {
+                return None;
+            };
+            return Some(InputIndex::Const(*idx));
+        }
+        if operands
+            .iter()
+            .any(|o| matches!(o.role, OperandRole::HostSig))
+        {
+            let Instr::HostCall { host_sig, .. } = &self.decoded.instr else {
+                return None;
+            };
+            return Some(InputIndex::HostSig(*host_sig));
+        }
+        if operands.iter().any(|o| matches!(o.role, OperandRole::Func)) {
+            let Instr::Call { func_id, .. } = &self.decoded.instr else {
+                return None;
+            };
+            return Some(InputIndex::Func(*func_id));
+        }
+        if operands.iter().any(|o| matches!(o.role, OperandRole::Type)) {
+            let Instr::StructNew { type_id, .. } = &self.decoded.instr else {
+                return None;
+            };
+            return Some(InputIndex::Type(*type_id));
+        }
+        if operands
+            .iter()
+            .any(|o| matches!(o.role, OperandRole::ElemType))
+        {
+            let Instr::ArrayNew { elem_type_id, .. } = &self.decoded.instr else {
+                return None;
+            };
+            return Some(InputIndex::ElemType(*elem_type_id));
+        }
+        if operands
+            .iter()
+            .any(|o| matches!(o.role, OperandRole::Index | OperandRole::FieldIndex))
+        {
+            let ix: u32 = match &self.decoded.instr {
+                Instr::TupleGet { index, .. } => *index,
+                Instr::StructGet { field_index, .. } => *field_index,
+                Instr::ArrayGetImm { index, .. } => *index,
+                Instr::BytesGetImm { index, .. } => *index,
+                _ => return None,
+            };
+            return Some(InputIndex::Index(ix));
+        }
+        if operands
+            .iter()
+            .any(|o| matches!(o.role, OperandRole::Scale))
+        {
+            let scale: u8 = match &self.decoded.instr {
+                Instr::I64ToDec { scale, .. } | Instr::U64ToDec { scale, .. } => *scale,
+                _ => return None,
+            };
+            return Some(InputIndex::Index(u32::from(scale)));
+        }
+        None
     }
 
     /// Resolved host symbol for `host_call` (best-effort).
@@ -470,6 +526,40 @@ impl<'a> InstrView<'a> {
     /// Full-fidelity operands for instructions that don't fit the `dst/srcs/input_index` shape.
     #[must_use]
     pub fn operands(&self) -> Operands<'a> {
+        let opcode = self.opcode();
+        if opcode.is_call_like() {
+            return match &self.decoded.instr {
+                Instr::Call {
+                    eff_out,
+                    func_id,
+                    eff_in,
+                    args,
+                    rets,
+                } => Operands::Call(CallOperands {
+                    eff_out: *eff_out,
+                    callee: CallTarget::Func(*func_id),
+                    eff_in: *eff_in,
+                    args,
+                    rets,
+                }),
+                Instr::HostCall {
+                    eff_out,
+                    host_sig,
+                    eff_in,
+                    args,
+                    rets,
+                } => Operands::Call(CallOperands {
+                    eff_out: *eff_out,
+                    callee: CallTarget::HostSig(*host_sig, self.host_op_symbol()),
+                    eff_in: *eff_in,
+                    args,
+                    rets,
+                }),
+                Instr::Ret { eff_in, rets } => Operands::Ret { eff: *eff_in, rets },
+                _ => Operands::Simple,
+            };
+        }
+
         match &self.decoded.instr {
             Instr::Br {
                 cond,
@@ -483,33 +573,6 @@ impl<'a> InstrView<'a> {
             Instr::Jmp { pc_target } => Operands::Jmp {
                 pc_target: *pc_target,
             },
-            Instr::Call {
-                eff_out,
-                func_id,
-                eff_in,
-                args,
-                rets,
-            } => Operands::Call(CallOperands {
-                eff_out: *eff_out,
-                callee: CallTarget::Func(*func_id),
-                eff_in: *eff_in,
-                args,
-                rets,
-            }),
-            Instr::HostCall {
-                eff_out,
-                host_sig,
-                eff_in,
-                args,
-                rets,
-            } => Operands::Call(CallOperands {
-                eff_out: *eff_out,
-                callee: CallTarget::HostSig(*host_sig, self.host_op_symbol()),
-                eff_in: *eff_in,
-                args,
-                rets,
-            }),
-            Instr::Ret { eff_in, rets } => Operands::Ret { eff: *eff_in, rets },
             _ => Operands::Simple,
         }
     }
@@ -993,7 +1056,7 @@ fn fmt_instr_with_labels(
     iv: &InstrView<'_>,
     label_pcs: &[u32],
 ) -> fmt::Result {
-    write!(f, "  {:06}: {}", iv.pc(), opcode_name(iv.opcode()))?;
+    write!(f, "  {:06}: {}", iv.pc(), iv.opcode().mnemonic())?;
     match iv.operands() {
         Operands::Simple => {
             if let Some(dst) = iv.dst() {
@@ -1006,7 +1069,12 @@ fn fmt_instr_with_labels(
                 fmt_reg_iter(f, reads)?;
             }
             if let Some(ix) = iv.input_index() {
-                if matches!(iv.opcode(), Opcode::ConstPool) {
+                if iv
+                    .opcode()
+                    .operands()
+                    .iter()
+                    .any(|o| matches!(o.role, OperandRole::Const))
+                {
                     write!(f, ", {ix}")?;
                 } else {
                     write!(f, " ; {ix}")?;
@@ -1015,17 +1083,7 @@ fn fmt_instr_with_labels(
             if let Some(sym) = iv.host_op_symbol() {
                 write!(f, " ; host=\"{sym}\"")?;
             }
-            if matches!(
-                iv.opcode(),
-                Opcode::ConstUnit
-                    | Opcode::ConstBool
-                    | Opcode::ConstI64
-                    | Opcode::ConstU64
-                    | Opcode::ConstF64
-                    | Opcode::ConstDecimal
-                    | Opcode::ConstPool
-            ) && let Some(v) = iv.const_value()
-            {
+            if let Some(v) = iv.const_value() {
                 write!(f, " ; ")?;
                 fmt_const_value(f, v)?;
             }
@@ -1116,7 +1174,7 @@ fn fmt_const_value(f: &mut fmt::Formatter<'_>, v: ConstValue<'_>) -> fmt::Result
 
 impl fmt::Display for InstrView<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:06}: {}", self.pc(), opcode_name(self.opcode()))?;
+        write!(f, "{:06}: {}", self.pc(), self.opcode().mnemonic())?;
         match self.operands() {
             Operands::Simple => {
                 if let Some(dst) = self.dst() {
@@ -1129,7 +1187,12 @@ impl fmt::Display for InstrView<'_> {
                     fmt_reg_iter(f, reads)?;
                 }
                 if let Some(ix) = self.input_index() {
-                    if matches!(self.opcode(), Opcode::ConstPool) {
+                    if self
+                        .opcode()
+                        .operands()
+                        .iter()
+                        .any(|o| matches!(o.role, OperandRole::Const))
+                    {
                         write!(f, ", {ix}")?;
                     } else {
                         write!(f, " ; {ix}")?;
@@ -1138,17 +1201,7 @@ impl fmt::Display for InstrView<'_> {
                 if let Some(sym) = self.host_op_symbol() {
                     write!(f, " ; host=\"{sym}\"")?;
                 }
-                if matches!(
-                    self.opcode(),
-                    Opcode::ConstUnit
-                        | Opcode::ConstBool
-                        | Opcode::ConstI64
-                        | Opcode::ConstU64
-                        | Opcode::ConstF64
-                        | Opcode::ConstDecimal
-                        | Opcode::ConstPool
-                ) && let Some(v) = self.const_value()
-                {
+                if let Some(v) = self.const_value() {
                     write!(f, " ; ")?;
                     fmt_const_value(f, v)?;
                 }
@@ -1193,115 +1246,6 @@ impl fmt::Display for InstrView<'_> {
             }
         }
         Ok(())
-    }
-}
-
-fn opcode_name(op: Opcode) -> &'static str {
-    // Keep names stable and parseable; match `Opcode` variants.
-    match op {
-        Opcode::Nop => "nop",
-        Opcode::Mov => "mov",
-        Opcode::Trap => "trap",
-        Opcode::ConstUnit => "const.unit",
-        Opcode::ConstBool => "const.bool",
-        Opcode::ConstI64 => "const.i64",
-        Opcode::ConstU64 => "const.u64",
-        Opcode::ConstF64 => "const.f64",
-        Opcode::ConstDecimal => "const.decimal",
-        Opcode::ConstPool => "const.pool",
-        Opcode::DecAdd => "dec.add",
-        Opcode::DecSub => "dec.sub",
-        Opcode::DecMul => "dec.mul",
-        Opcode::F64Add => "f64.add",
-        Opcode::F64Sub => "f64.sub",
-        Opcode::F64Mul => "f64.mul",
-        Opcode::F64Div => "f64.div",
-        Opcode::F64Neg => "f64.neg",
-        Opcode::F64Abs => "f64.abs",
-        Opcode::F64Min => "f64.min",
-        Opcode::F64Max => "f64.max",
-        Opcode::F64MinNum => "f64.min_num",
-        Opcode::F64MaxNum => "f64.max_num",
-        Opcode::F64Rem => "f64.rem",
-        Opcode::F64ToBits => "f64.to_bits",
-        Opcode::F64FromBits => "f64.from_bits",
-        Opcode::I64Add => "i64.add",
-        Opcode::I64Sub => "i64.sub",
-        Opcode::I64Mul => "i64.mul",
-        Opcode::U64Add => "u64.add",
-        Opcode::U64Sub => "u64.sub",
-        Opcode::U64Mul => "u64.mul",
-        Opcode::U64And => "u64.and",
-        Opcode::U64Or => "u64.or",
-        Opcode::U64Xor => "u64.xor",
-        Opcode::U64Shl => "u64.shl",
-        Opcode::U64Shr => "u64.shr",
-        Opcode::I64And => "i64.and",
-        Opcode::I64Or => "i64.or",
-        Opcode::I64Xor => "i64.xor",
-        Opcode::I64Shl => "i64.shl",
-        Opcode::I64Shr => "i64.shr",
-        Opcode::U64ToI64 => "u64.to_i64",
-        Opcode::I64ToU64 => "i64.to_u64",
-        Opcode::Select => "select",
-        Opcode::I64Gt => "i64.gt",
-        Opcode::I64Le => "i64.le",
-        Opcode::I64Ge => "i64.ge",
-        Opcode::I64Eq => "i64.eq",
-        Opcode::I64Lt => "i64.lt",
-        Opcode::U64Eq => "u64.eq",
-        Opcode::U64Lt => "u64.lt",
-        Opcode::U64Gt => "u64.gt",
-        Opcode::BoolNot => "bool.not",
-        Opcode::U64Le => "u64.le",
-        Opcode::U64Ge => "u64.ge",
-        Opcode::F64Eq => "f64.eq",
-        Opcode::F64Lt => "f64.lt",
-        Opcode::F64Gt => "f64.gt",
-        Opcode::F64Le => "f64.le",
-        Opcode::F64Ge => "f64.ge",
-        Opcode::Br => "br",
-        Opcode::Jmp => "jmp",
-        Opcode::Call => "call",
-        Opcode::Ret => "ret",
-        Opcode::HostCall => "host_call",
-        Opcode::TupleNew => "tuple.new",
-        Opcode::TupleGet => "tuple.get",
-        Opcode::StructNew => "struct.new",
-        Opcode::StructGet => "struct.get",
-        Opcode::ArrayNew => "array.new",
-        Opcode::ArrayLen => "array.len",
-        Opcode::ArrayGet => "array.get",
-        Opcode::ArrayGetImm => "array.get_imm",
-        Opcode::TupleLen => "tuple.len",
-        Opcode::StructFieldCount => "struct.field_count",
-        Opcode::BytesLen => "bytes.len",
-        Opcode::StrLen => "str.len",
-        Opcode::BytesEq => "bytes.eq",
-        Opcode::StrEq => "str.eq",
-        Opcode::BytesConcat => "bytes.concat",
-        Opcode::StrConcat => "str.concat",
-        Opcode::BytesGet => "bytes.get",
-        Opcode::BytesGetImm => "bytes.get_imm",
-        Opcode::BytesSlice => "bytes.slice",
-        Opcode::StrSlice => "str.slice",
-        Opcode::StrToBytes => "str.to_bytes",
-        Opcode::BytesToStr => "bytes.to_str",
-        Opcode::U64Div => "u64.div",
-        Opcode::U64Rem => "u64.rem",
-        Opcode::I64Div => "i64.div",
-        Opcode::I64Rem => "i64.rem",
-        Opcode::I64ToF64 => "i64.to_f64",
-        Opcode::U64ToF64 => "u64.to_f64",
-        Opcode::F64ToI64 => "f64.to_i64",
-        Opcode::F64ToU64 => "f64.to_u64",
-        Opcode::DecToI64 => "dec.to_i64",
-        Opcode::DecToU64 => "dec.to_u64",
-        Opcode::I64ToDec => "i64.to_dec",
-        Opcode::U64ToDec => "u64.to_dec",
-        Opcode::BoolAnd => "bool.and",
-        Opcode::BoolOr => "bool.or",
-        Opcode::BoolXor => "bool.xor",
     }
 }
 

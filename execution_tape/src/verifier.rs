@@ -17,6 +17,7 @@ use crate::analysis::liveness;
 use crate::bytecode::{DecodedInstr, Instr, decode_instructions};
 use crate::format::DecodeError;
 use crate::host::sig_hash_slices;
+use crate::instr_operands;
 use crate::opcode::Opcode;
 use crate::program::{ConstEntry, ElemTypeId, Function, Program, SpanEntry, TypeId, ValueType};
 use crate::typed::{
@@ -113,6 +114,18 @@ impl VerifiedProgram {
 pub enum VerifyError {
     /// The program failed to decode.
     Decode(DecodeError),
+    /// Internal error: opcode schema does not match the decoded instruction shape.
+    ///
+    /// This should never occur for valid `execution_tape` builds, and indicates drift between
+    /// opcode metadata and the bytecode decoder.
+    InternalOpcodeSchemaMismatch {
+        /// Function index within the program.
+        func: u32,
+        /// Byte offset of the instruction.
+        pc: u32,
+        /// Opcode byte.
+        opcode: u8,
+    },
     /// A function references an out-of-bounds byte range.
     FunctionBytecodeOutOfBounds {
         /// Function index within the program.
@@ -436,6 +449,10 @@ impl fmt::Display for VerifyError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Decode(e) => write!(f, "decode failed: {e}"),
+            Self::InternalOpcodeSchemaMismatch { func, pc, opcode } => write!(
+                f,
+                "internal opcode schema mismatch: function {func} pc={pc} opcode=0x{opcode:02X}"
+            ),
             Self::FunctionBytecodeOutOfBounds { func } => {
                 write!(f, "function {func} bytecode out of bounds")
             }
@@ -795,9 +812,113 @@ fn verify_function_container(
 
     let decoded =
         decode_instructions(bytecode).map_err(|_| VerifyError::BytecodeDecode { func: func_id })?;
+    for di in &decoded {
+        let op = Opcode::from_u8(di.opcode).expect("decoder only emits known opcodes");
+        let schema = di.instr.operand_schema();
+        let op_schema = op.operands();
+        let mut ok = schema.len() == op_schema.len();
+        if ok {
+            for (i, operand) in schema.iter().enumerate() {
+                if op_schema[i].kind != operand.kind
+                    || op_schema[i].role != operand.role
+                    || op_schema[i].encoding != operand.encoding
+                {
+                    ok = false;
+                    break;
+                }
+            }
+        }
+        if !ok {
+            return Err(VerifyError::InternalOpcodeSchemaMismatch {
+                func: func_id,
+                pc: di.offset,
+                opcode: di.opcode,
+            });
+        }
+    }
+    verify_id_operands_in_bounds(program, func_id, &decoded)?;
     verify_function_bytecode(
         program, func_id, func, bytecode, arg_types, ret_types, &decoded,
     )
+}
+
+fn verify_id_operands_in_bounds(
+    program: &Program,
+    func: u32,
+    decoded: &[DecodedInstr],
+) -> Result<(), VerifyError> {
+    for di in decoded {
+        let pc = di.offset;
+
+        let mut err: Option<VerifyError> = None;
+
+        instr_operands::visit_const_ids(&di.instr, |id| {
+            if err.is_some() {
+                return;
+            }
+            if program.const_pool.get(id.0 as usize).is_none() {
+                err = Some(VerifyError::ConstOutOfBounds {
+                    func,
+                    pc,
+                    const_id: id.0,
+                });
+            }
+        });
+
+        instr_operands::visit_host_sig_ids(&di.instr, |id| {
+            if err.is_some() {
+                return;
+            }
+            if program.host_sig(id).is_none() {
+                err = Some(VerifyError::HostSigOutOfBounds {
+                    func,
+                    pc,
+                    host_sig: id.0,
+                });
+            }
+        });
+
+        instr_operands::visit_type_ids(&di.instr, |id| {
+            if err.is_some() {
+                return;
+            }
+            if program.types.structs.get(id.0 as usize).is_none() {
+                err = Some(VerifyError::StructTypeOutOfBounds {
+                    func,
+                    pc,
+                    type_id: id.0,
+                });
+            }
+        });
+
+        instr_operands::visit_elem_type_ids(&di.instr, |id| {
+            if err.is_some() {
+                return;
+            }
+            if program.types.array_elems.get(id.0 as usize).is_none() {
+                err = Some(VerifyError::ArrayElemTypeOutOfBounds {
+                    func,
+                    pc,
+                    elem_type_id: id.0,
+                });
+            }
+        });
+
+        instr_operands::visit_func_ids(&di.instr, |id| {
+            if err.is_some() {
+                return;
+            }
+            if program.functions.get(id.0 as usize).is_none() {
+                err = Some(VerifyError::CallArityMismatch { func, pc });
+            }
+        });
+
+        if let Some(err) = err {
+            return Err(err);
+        }
+    }
+
+    Ok(())
 }
 
 fn verify_span_table(bytecode_len: u64, spans: &[SpanEntry]) -> Result<(), ()> {
@@ -1209,13 +1330,7 @@ fn verify_function_bytecode(
             },
 
             Instr::ConstPool { dst, idx } => {
-                let c = program.const_pool.get(idx.0 as usize).ok_or(
-                    VerifyError::ConstOutOfBounds {
-                        func: func_id,
-                        pc: di.offset,
-                        const_id: idx.0,
-                    },
-                )?;
+                let c = &program.const_pool[idx.0 as usize];
                 match const_value_type(c) {
                     ValueType::Unit => VerifiedInstr::ConstPoolUnit {
                         dst: map_unit(*dst)?,
@@ -1938,7 +2053,8 @@ fn lint_function_bytecode(
             }
 
             // Writes.
-            let is_call_like = matches!(di.instr, Instr::Call { .. } | Instr::HostCall { .. });
+            let opcode = Opcode::from_u8(di.opcode).expect("decoder only emits known opcodes");
+            let is_call_like = opcode.is_call_like();
             let mut call_rets: Option<&[u32]> = None;
             if let Instr::Call { rets, .. } = &di.instr {
                 call_rets = Some(rets.as_slice());
@@ -2207,10 +2323,7 @@ fn validate_instr_reads_writes(
                 require_init(a, state)?;
             }
             // Signature check (counts only for now).
-            let callee = program
-                .functions
-                .get(callee.0 as usize)
-                .ok_or(VerifyError::CallArityMismatch { func: func_id, pc })?;
+            let callee = &program.functions[callee.0 as usize];
             if u32::try_from(args.len()).ok() != Some(callee.arg_count)
                 || u32::try_from(rets.len()).ok() != Some(callee.ret_count)
             {
@@ -2245,11 +2358,7 @@ fn validate_instr_reads_writes(
             }
             let hs = program
                 .host_sig(*host_sig)
-                .ok_or(VerifyError::HostSigOutOfBounds {
-                    func: func_id,
-                    pc,
-                    host_sig: host_sig.0,
-                })?;
+                .expect("validated by verify_id_operands_in_bounds");
             let hs_args =
                 program
                     .host_sig_args(hs)
@@ -2880,15 +2989,7 @@ fn validate_instr_types(
         | Instr::ConstU64 { .. }
         | Instr::ConstF64 { .. }
         | Instr::ConstDecimal { .. } => {}
-        Instr::ConstPool { idx, .. } => {
-            if (idx.0 as usize) >= program.const_pool.len() {
-                return Err(VerifyError::ConstOutOfBounds {
-                    func: func_id,
-                    pc,
-                    const_id: idx.0,
-                });
-            }
-        }
+        Instr::ConstPool { .. } => {}
         Instr::DecAdd { a, b, .. } | Instr::DecSub { a, b, .. } | Instr::DecMul { a, b, .. } => {
             check_expected(func_id, pc, *a, t(*a), ValueType::Decimal)?;
             check_expected(func_id, pc, *b, t(*b), ValueType::Decimal)?;
@@ -3150,11 +3251,7 @@ fn validate_instr_types(
         } => {
             let hs = program
                 .host_sig(*host_sig)
-                .ok_or(VerifyError::HostSigOutOfBounds {
-                    func: func_id,
-                    pc,
-                    host_sig: host_sig.0,
-                })?;
+                .expect("validated by verify_id_operands_in_bounds");
             let hs_args =
                 program
                     .host_sig_args(hs)
@@ -3339,16 +3436,11 @@ fn validate_instr_types(
             if *len as usize != values.len() {
                 return Err(VerifyError::ArrayLenMismatch { func: func_id, pc });
             }
-            let elem = program
+            let elem = *program
                 .types
                 .array_elems
                 .get(elem_type_id.0 as usize)
-                .copied()
-                .ok_or(VerifyError::ArrayElemTypeOutOfBounds {
-                    func: func_id,
-                    pc,
-                    elem_type_id: elem_type_id.0,
-                })?;
+                .expect("validated by verify_id_operands_in_bounds");
             for &r in values {
                 check_expected(func_id, pc, r, t(r), elem)?;
             }
