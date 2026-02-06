@@ -21,12 +21,14 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "src",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "src"
         }
       ]
     },
@@ -41,7 +43,8 @@
         {
           "kind": "imm_u32",
           "role": "trap_code",
-          "encoding": "u32_uleb"
+          "encoding": "u32_uleb",
+          "field": "code"
         }
       ]
     },
@@ -56,7 +59,8 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         }
       ]
     },
@@ -71,12 +75,14 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "imm_bool",
           "role": "imm",
-          "encoding": "bool_u8"
+          "encoding": "bool_u8",
+          "field": "imm"
         }
       ]
     },
@@ -91,12 +97,14 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "imm_i64",
           "role": "imm",
-          "encoding": "i64_sleb"
+          "encoding": "i64_sleb",
+          "field": "imm"
         }
       ]
     },
@@ -111,12 +119,14 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "imm_u64",
           "role": "imm",
-          "encoding": "u64_uleb"
+          "encoding": "u64_uleb",
+          "field": "imm"
         }
       ]
     },
@@ -131,12 +141,14 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "imm_u64",
           "role": "bits",
-          "encoding": "u64_le"
+          "encoding": "u64_le",
+          "field": "bits"
         }
       ]
     },
@@ -151,17 +163,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "imm_i64",
           "role": "mantissa",
-          "encoding": "i64_sleb"
+          "encoding": "i64_sleb",
+          "field": "mantissa"
         },
         {
           "kind": "imm_u8",
           "role": "scale",
-          "encoding": "u8_raw"
+          "encoding": "u8_raw",
+          "field": "scale"
         }
       ]
     },
@@ -176,12 +191,14 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "const_id",
           "role": "const",
-          "encoding": "u32_uleb"
+          "encoding": "u32_uleb",
+          "field": "idx"
         }
       ]
     },
@@ -196,17 +213,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -221,17 +241,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -246,17 +269,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -271,17 +297,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -296,17 +325,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -321,17 +353,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -346,17 +381,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -371,17 +409,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -396,17 +437,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -421,17 +465,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -446,17 +493,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -471,17 +521,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -496,17 +549,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -521,17 +577,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -546,17 +605,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -571,17 +633,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -596,17 +661,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -621,17 +689,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -646,17 +717,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -671,17 +745,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -696,17 +773,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -721,17 +801,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -746,12 +829,14 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         }
       ]
     },
@@ -766,17 +851,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -791,17 +879,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -816,17 +907,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -841,12 +935,14 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         }
       ]
     },
@@ -861,12 +957,14 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         }
       ]
     },
@@ -881,17 +979,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -906,17 +1007,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -931,22 +1035,26 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "cond",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "cond"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -961,17 +1069,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -986,17 +1097,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -1011,17 +1125,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -1036,17 +1153,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -1061,17 +1181,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -1086,17 +1209,20 @@
         {
           "kind": "reg",
           "role": "cond",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "cond"
         },
         {
           "kind": "pc",
           "role": "pc_true",
-          "encoding": "u32_uleb"
+          "encoding": "u32_uleb",
+          "field": "pc_true"
         },
         {
           "kind": "pc",
           "role": "pc_false",
-          "encoding": "u32_uleb"
+          "encoding": "u32_uleb",
+          "field": "pc_false"
         }
       ]
     },
@@ -1111,7 +1237,8 @@
         {
           "kind": "pc",
           "role": "pc_target",
-          "encoding": "u32_uleb"
+          "encoding": "u32_uleb",
+          "field": "pc_target"
         }
       ]
     },
@@ -1128,27 +1255,32 @@
         {
           "kind": "reg",
           "role": "eff_out",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "eff_out"
         },
         {
           "kind": "func_id",
           "role": "func",
-          "encoding": "u32_uleb"
+          "encoding": "u32_uleb",
+          "field": "func_id"
         },
         {
           "kind": "reg",
           "role": "eff_in",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "eff_in"
         },
         {
           "kind": "reg_list",
           "role": "args",
-          "encoding": "reg_list_u32_uleb_count_then_regs"
+          "encoding": "reg_list_u32_uleb_count_then_regs",
+          "field": "args"
         },
         {
           "kind": "reg_list",
           "role": "rets",
-          "encoding": "reg_list_u32_uleb_count_then_regs"
+          "encoding": "reg_list_u32_uleb_count_then_regs",
+          "field": "rets"
         }
       ]
     },
@@ -1165,12 +1297,14 @@
         {
           "kind": "reg",
           "role": "eff_in",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "eff_in"
         },
         {
           "kind": "reg_list",
           "role": "rets",
-          "encoding": "reg_list_u32_uleb_count_then_regs"
+          "encoding": "reg_list_u32_uleb_count_then_regs",
+          "field": "rets"
         }
       ]
     },
@@ -1187,27 +1321,32 @@
         {
           "kind": "reg",
           "role": "eff_out",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "eff_out"
         },
         {
           "kind": "host_sig_id",
           "role": "host_sig",
-          "encoding": "u32_uleb"
+          "encoding": "u32_uleb",
+          "field": "host_sig"
         },
         {
           "kind": "reg",
           "role": "eff_in",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "eff_in"
         },
         {
           "kind": "reg_list",
           "role": "args",
-          "encoding": "reg_list_u32_uleb_count_then_regs"
+          "encoding": "reg_list_u32_uleb_count_then_regs",
+          "field": "args"
         },
         {
           "kind": "reg_list",
           "role": "rets",
-          "encoding": "reg_list_u32_uleb_count_then_regs"
+          "encoding": "reg_list_u32_uleb_count_then_regs",
+          "field": "rets"
         }
       ]
     },
@@ -1222,12 +1361,14 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg_list",
           "role": "values",
-          "encoding": "reg_list_u32_uleb_count_then_regs"
+          "encoding": "reg_list_u32_uleb_count_then_regs",
+          "field": "values"
         }
       ]
     },
@@ -1242,17 +1383,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "tuple",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "tuple"
         },
         {
           "kind": "imm_u32",
           "role": "index",
-          "encoding": "u32_uleb"
+          "encoding": "u32_uleb",
+          "field": "index"
         }
       ]
     },
@@ -1267,17 +1411,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "type_id",
           "role": "type",
-          "encoding": "u32_uleb"
+          "encoding": "u32_uleb",
+          "field": "type_id"
         },
         {
           "kind": "reg_list",
           "role": "values",
-          "encoding": "reg_list_u32_uleb_count_then_regs"
+          "encoding": "reg_list_u32_uleb_count_then_regs",
+          "field": "values"
         }
       ]
     },
@@ -1292,17 +1439,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "st",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "st"
         },
         {
           "kind": "imm_u32",
           "role": "field_index",
-          "encoding": "u32_uleb"
+          "encoding": "u32_uleb",
+          "field": "field_index"
         }
       ]
     },
@@ -1317,17 +1467,21 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "elem_type_id",
           "role": "elem_type",
-          "encoding": "u32_uleb"
+          "encoding": "u32_uleb",
+          "field": "elem_type_id"
         },
         {
           "kind": "reg_list",
           "role": "values",
-          "encoding": "reg_list_u32_uleb_count_then_regs"
+          "encoding": "reg_list_u32_uleb_count_then_regs",
+          "field": "values",
+          "count_field": "len"
         }
       ]
     },
@@ -1342,12 +1496,14 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "arr",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "arr"
         }
       ]
     },
@@ -1362,17 +1518,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "arr",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "arr"
         },
         {
           "kind": "reg",
           "role": "index",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "index"
         }
       ]
     },
@@ -1387,12 +1546,14 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "tuple",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "tuple"
         }
       ]
     },
@@ -1407,12 +1568,14 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "st",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "st"
         }
       ]
     },
@@ -1427,17 +1590,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "arr",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "arr"
         },
         {
           "kind": "imm_u32",
           "role": "index",
-          "encoding": "u32_uleb"
+          "encoding": "u32_uleb",
+          "field": "index"
         }
       ]
     },
@@ -1452,12 +1618,14 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "bytes",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "bytes"
         }
       ]
     },
@@ -1472,12 +1640,14 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "s",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "s"
         }
       ]
     },
@@ -1492,17 +1662,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -1517,17 +1690,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -1542,17 +1718,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -1567,17 +1746,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -1592,12 +1774,14 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         }
       ]
     },
@@ -1612,12 +1796,14 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         }
       ]
     },
@@ -1632,12 +1818,14 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         }
       ]
     },
@@ -1652,12 +1840,14 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         }
       ]
     },
@@ -1672,12 +1862,14 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         }
       ]
     },
@@ -1692,12 +1884,14 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         }
       ]
     },
@@ -1712,17 +1906,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "imm_u8",
           "role": "scale",
-          "encoding": "u8_raw"
+          "encoding": "u8_raw",
+          "field": "scale"
         }
       ]
     },
@@ -1737,17 +1934,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "imm_u8",
           "role": "scale",
-          "encoding": "u8_raw"
+          "encoding": "u8_raw",
+          "field": "scale"
         }
       ]
     },
@@ -1762,17 +1962,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -1787,17 +1990,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -1812,17 +2018,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -1837,17 +2046,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -1862,17 +2074,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "bytes",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "bytes"
         },
         {
           "kind": "reg",
           "role": "index",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "index"
         }
       ]
     },
@@ -1887,17 +2102,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "bytes",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "bytes"
         },
         {
           "kind": "imm_u32",
           "role": "index",
-          "encoding": "u32_uleb"
+          "encoding": "u32_uleb",
+          "field": "index"
         }
       ]
     },
@@ -1912,22 +2130,26 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "bytes",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "bytes"
         },
         {
           "kind": "reg",
           "role": "start",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "start"
         },
         {
           "kind": "reg",
           "role": "end",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "end"
         }
       ]
     },
@@ -1942,22 +2164,26 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "s",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "s"
         },
         {
           "kind": "reg",
           "role": "start",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "start"
         },
         {
           "kind": "reg",
           "role": "end",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "end"
         }
       ]
     },
@@ -1972,12 +2198,14 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "s",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "s"
         }
       ]
     },
@@ -1992,12 +2220,14 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "bytes",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "bytes"
         }
       ]
     },
@@ -2012,17 +2242,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -2037,17 +2270,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -2062,17 +2298,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -2087,17 +2326,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -2112,17 +2354,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -2137,17 +2382,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -2162,17 +2410,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -2187,17 +2438,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -2212,17 +2466,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -2237,12 +2494,14 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         }
       ]
     },
@@ -2257,12 +2516,14 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         }
       ]
     },
@@ -2277,17 +2538,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -2302,17 +2566,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -2327,17 +2594,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -2352,17 +2622,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -2377,17 +2650,20 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         },
         {
           "kind": "reg",
           "role": "b",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "b"
         }
       ]
     },
@@ -2402,12 +2678,14 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         }
       ]
     },
@@ -2422,12 +2700,14 @@
         {
           "kind": "reg",
           "role": "dst",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "dst"
         },
         {
           "kind": "reg",
           "role": "a",
-          "encoding": "reg_u32_uleb"
+          "encoding": "reg_u32_uleb",
+          "field": "a"
         }
       ]
     }
