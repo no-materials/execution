@@ -122,6 +122,7 @@ struct Node {
     input_names: Vec<Box<str>>,
     inputs: BTreeMap<Box<str>, Binding>,
     output_names: Vec<Box<str>>,
+    output_ids: Vec<DirtyKey>,
     outputs: NodeOutputs,
     last_access: AccessLog,
     run_count: u64,
@@ -268,23 +269,25 @@ impl<H: Host> ExecutionGraph<H> {
             }
         }
 
+        // Intern output keys once at node creation time.
+        let mut output_ids: Vec<DirtyKey> = Vec::with_capacity(output_names.len());
+        for out_name in output_names.iter().cloned() {
+            let id = self.dirty.intern(ResourceKey::tape_output(node, out_name));
+            self.dirty.mark_dirty(id);
+            output_ids.push(id);
+        }
+
         let n = Node {
             program,
             entry,
             input_names,
             inputs: BTreeMap::new(),
             output_names,
+            output_ids,
             outputs: BTreeMap::new(),
             last_access: AccessLog::new(),
             run_count: 0,
         };
-
-        // Force an initial run by marking all outputs dirty.
-        for out in n.output_names.iter().cloned() {
-            let key = ResourceKey::tape_output(node, out);
-            let id = self.dirty.intern(key);
-            self.dirty.mark_dirty(id);
-        }
 
         self.nodes.push(n);
         node
@@ -337,9 +340,10 @@ impl<H: Host> ExecutionGraph<H> {
         let Some(to_node) = self.nodes.get(to_index) else {
             return;
         };
+        let output_count = to_node.output_ids.len();
         let src = self.dirty.intern(ResourceKey::tape_output(from, output));
-        for out_name in to_node.output_names.iter().cloned() {
-            let dst = self.dirty.intern(ResourceKey::tape_output(to, out_name));
+        for output_ix in 0..output_count {
+            let dst = self.nodes[to_index].output_ids[output_ix];
             self.dirty.add_dependency(dst, src);
             self.dirty.mark_dirty(dst);
         }
@@ -416,16 +420,46 @@ impl<H: Host> ExecutionGraph<H> {
         Some(self.nodes.get(index)?.run_count)
     }
 
-    /// Runs all currently dirty work in dependency order.
-    pub fn run_all(&mut self) -> Result<(), GraphError> {
+    #[inline]
+    fn collect_planned_nodes_all(&mut self) {
         self.scratch.start_drain(self.nodes.len());
 
         for (_key_id, key) in self.dirty.drain() {
-            let ResourceKey::TapeOutput { node, .. } = key else {
-                continue;
-            };
-            let _ = self.scratch.take_node(*node);
+            Self::schedule_tape_output_key(&mut self.scratch, key);
         }
+    }
+
+    #[inline]
+    fn collect_planned_nodes_within_dependencies_of(
+        &mut self,
+        node: NodeId,
+    ) -> Result<(), GraphError> {
+        let index = usize::try_from(node.as_u64()).map_err(|_| GraphError::BadNodeId)?;
+        let n = self.nodes.get(index).ok_or(GraphError::BadNodeId)?;
+        let output_count = n.output_ids.len();
+
+        self.scratch.start_drain(self.nodes.len());
+        for output_ix in 0..output_count {
+            let out_id = self.nodes[index].output_ids[output_ix];
+            for (_key_id, key) in self.dirty.drain_within_dependencies_of(out_id) {
+                Self::schedule_tape_output_key(&mut self.scratch, key);
+            }
+        }
+
+        Ok(())
+    }
+
+    #[inline]
+    fn schedule_tape_output_key(scratch: &mut Scratch, key: &ResourceKey) {
+        let ResourceKey::TapeOutput { node, .. } = key else {
+            return;
+        };
+        let _ = scratch.take_node(*node);
+    }
+
+    /// Runs all currently dirty work in dependency order.
+    pub fn run_all(&mut self) -> Result<(), GraphError> {
+        self.collect_planned_nodes_all();
 
         let mut to_run = core::mem::take(&mut self.scratch.to_run);
         for node in to_run.drain(..) {
@@ -512,25 +546,7 @@ impl<H: Host> ExecutionGraph<H> {
     /// This drains only dirty keys that are within the dependency closure of `node`'s outputs.
     /// Unrelated dirty work remains dirty and is not drained.
     pub fn run_node(&mut self, node: NodeId) -> Result<(), GraphError> {
-        let Ok(index) = usize::try_from(node.as_u64()) else {
-            return Err(GraphError::BadNodeId);
-        };
-        let Some(n) = self.nodes.get(index) else {
-            return Err(GraphError::BadNodeId);
-        };
-
-        // Drain dirty keys within the dependency closure of each output, and execute nodes whose
-        // output keys are affected.
-        self.scratch.start_drain(self.nodes.len());
-        for out_name in n.output_names.iter().cloned() {
-            let out_id = self.dirty.intern(ResourceKey::tape_output(node, out_name));
-            for (_key_id, key) in self.dirty.drain_within_dependencies_of(out_id) {
-                let ResourceKey::TapeOutput { node, .. } = key else {
-                    continue;
-                };
-                let _ = self.scratch.take_node(*node);
-            }
-        }
+        self.collect_planned_nodes_within_dependencies_of(node)?;
 
         let mut to_run = core::mem::take(&mut self.scratch.to_run);
         for node in to_run.drain(..) {
@@ -553,6 +569,7 @@ impl<H: Host> ExecutionGraph<H> {
         let Some(n) = self.nodes.get(index) else {
             return Err(GraphError::BadNodeId);
         };
+        let output_count = n.output_ids.len();
 
         self.scratch.start_drain(self.nodes.len());
         let mut node_report: Vec<Option<NodeRunReport>> = alloc::vec![None; self.nodes.len()];
@@ -562,8 +579,8 @@ impl<H: Host> ExecutionGraph<H> {
 
         // Drain dirty keys within the dependency closure of each output, and execute nodes whose
         // output keys are affected.
-        for out_name in n.output_names.iter().cloned() {
-            let out_id = self.dirty.intern(ResourceKey::tape_output(node, out_name));
+        for output_ix in 0..output_count {
+            let out_id = self.nodes[index].output_ids[output_ix];
 
             trace.clear();
             let mut newly_scheduled: Vec<(NodeId, DirtyKey, ResourceKey)> = Vec::new();
@@ -723,8 +740,7 @@ impl<H: Host> ExecutionGraph<H> {
             .map(|k| self.dirty.intern(k))
             .collect();
 
-        for out_name in self.nodes[node_index].output_names.iter().cloned() {
-            let out_id = self.dirty.intern(ResourceKey::tape_output(node, out_name));
+        for &out_id in self.nodes[node_index].output_ids.iter() {
             self.dirty.set_dependencies(out_id, reads.iter().copied());
         }
 
