@@ -194,6 +194,7 @@ struct Scratch {
     to_run: Vec<NodeId>,
     seen_stamp: Vec<u32>,
     read_ids: Vec<DirtyKey>,
+    args: Vec<Value>,
     stamp: u32,
 }
 
@@ -825,12 +826,10 @@ impl<H: Host> ExecutionGraph<H> {
         let collect_access = self.collect_access;
 
         // Build args and (optionally) access log. In the fast path we build read_ids directly.
-        let mut args: Vec<Value> = Vec::with_capacity(n.input_names.len());
-        let mut log = if collect_access {
-            AccessLog::new()
-        } else {
-            AccessLog::new() // will remain empty; not written to
-        };
+        // Take args out of scratch to allow disjoint borrows of self.vm / self.ctx.
+        let mut args = core::mem::take(&mut self.scratch.args);
+        args.clear();
+        let mut log = AccessLog::new();
 
         self.scratch.read_ids.clear();
 
@@ -898,6 +897,9 @@ impl<H: Host> ExecutionGraph<H> {
                 Some(&mut tape_access),
             )
             .map_err(|_| GraphError::Trap)?;
+
+        // Restore args buffer to scratch for reuse on next run.
+        self.scratch.args = args;
 
         if self.strict_deps
             && let Some(v) = strict.violation()
