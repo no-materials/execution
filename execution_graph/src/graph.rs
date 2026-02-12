@@ -113,8 +113,15 @@ pub type NodeOutputs = BTreeMap<Box<str>, Value>;
 
 #[derive(Clone, Debug)]
 pub(crate) enum Binding {
-    External(Value),
-    FromNode { node: NodeId, output: Box<str> },
+    External {
+        value: Value,
+        read_id: DirtyKey,
+    },
+    FromNode {
+        node: NodeId,
+        output: Box<str>,
+        read_id: DirtyKey,
+    },
 }
 
 #[derive(Debug)]
@@ -351,15 +358,24 @@ impl<H: Host> ExecutionGraph<H> {
         let Ok(index) = usize::try_from(node.as_u64()) else {
             return;
         };
-        if let Some(n) = self.nodes.get_mut(index) {
-            let name: Box<str> = name.into();
-            let Some(slots) = n.input_slots.get(name.as_ref()) else {
-                return;
-            };
-            for &slot in slots {
-                if let Some(binding) = n.inputs.get_mut(slot) {
-                    *binding = Some(Binding::External(value.clone()));
-                }
+        let name: Box<str> = name.into();
+        // Validate node and slot exist before interning to avoid memory churn on bad inputs.
+        if self
+            .nodes
+            .get(index)
+            .and_then(|n| n.input_slots.get(name.as_ref()))
+            .is_none()
+        {
+            return;
+        }
+        let read_id = self.dirty.intern(ResourceKey::input(name.clone()));
+        let n = &mut self.nodes[index];
+        for &slot in n.input_slots.get(name.as_ref()).unwrap() {
+            if let Some(binding) = n.inputs.get_mut(slot) {
+                *binding = Some(Binding::External {
+                    value: value.clone(),
+                    read_id,
+                });
             }
         }
     }
@@ -379,6 +395,13 @@ impl<H: Host> ExecutionGraph<H> {
         let Ok(index) = usize::try_from(to.as_u64()) else {
             return;
         };
+        // Validate target node exists before interning to avoid memory churn on bad inputs.
+        if self.nodes.get(index).is_none() {
+            return;
+        }
+        let read_id = self
+            .dirty
+            .intern(ResourceKey::tape_output(from, output.clone()));
         if let Some(n) = self.nodes.get_mut(index)
             && let Some(slots) = n.input_slots.get(input.as_ref())
         {
@@ -387,6 +410,7 @@ impl<H: Host> ExecutionGraph<H> {
                     *binding = Some(Binding::FromNode {
                         node: from,
                         output: output.clone(),
+                        read_id,
                     });
                 }
             }
@@ -404,7 +428,7 @@ impl<H: Host> ExecutionGraph<H> {
             return;
         };
         let output_count = to_node.output_ids.len();
-        let src = self.dirty.intern(ResourceKey::tape_output(from, output));
+        let src = read_id;
         for output_ix in 0..output_count {
             let dst = self.nodes[to_index].output_ids[output_ix];
             self.dirty.add_dependency(dst, src);
@@ -819,17 +843,18 @@ impl<H: Host> ExecutionGraph<H> {
             })?;
 
             match b {
-                Binding::External(v) => {
-                    let read_key = ResourceKey::input(name.clone());
-                    self.scratch
-                        .read_ids
-                        .push(self.dirty.intern(read_key.clone()));
+                Binding::External { value: v, read_id } => {
+                    self.scratch.read_ids.push(*read_id);
                     if collect_access {
-                        log.push(Access::Read(read_key));
+                        log.push(Access::Read(ResourceKey::input(name.clone())));
                     }
                     args.push(v.clone());
                 }
-                Binding::FromNode { node: up, output } => {
+                Binding::FromNode {
+                    node: up,
+                    output,
+                    read_id,
+                } => {
                     let up_index =
                         usize::try_from(up.as_u64()).map_err(|_| GraphError::BadNodeId)?;
                     let Some(up_node) = self.nodes.get(up_index) else {
@@ -841,12 +866,9 @@ impl<H: Host> ExecutionGraph<H> {
                             name: output.clone(),
                         }
                     })?;
-                    let read_key = ResourceKey::tape_output(*up, output.clone());
-                    self.scratch
-                        .read_ids
-                        .push(self.dirty.intern(read_key.clone()));
+                    self.scratch.read_ids.push(*read_id);
                     if collect_access {
-                        log.push(Access::Read(read_key));
+                        log.push(Access::Read(ResourceKey::tape_output(*up, output.clone())));
                     }
                     args.push(v.clone());
                 }
