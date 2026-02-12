@@ -17,3 +17,7 @@ criterion = "0.5"
 [[bench]]
 name = "graph"
 harness = false
+
+[[bench]]
+name = "assemblies"
+harness = false
