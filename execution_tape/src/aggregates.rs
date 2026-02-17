@@ -144,26 +144,27 @@ impl AggDelta {
 
     /// Deterministically merges reachable staged aggregates into `base`.
     ///
+    /// Consumes the delta to enforce single-use commit semantics.
+    ///
     /// Reachability is traced from `roots`. Only staged nodes reachable from at least one root are
     /// appended, and append order is increasing staged index.
     ///
     /// Returns [`AggError::UnresolvedStagedHandle`] if `roots` (or nested values in reachable
     /// staged nodes) contain a staged-domain handle that does not resolve to this delta.
-    pub fn merge_into(&self, base: &mut AggHeap, roots: &[Value]) -> Result<AggRemap, AggError> {
+    pub fn merge_into(self, base: &mut AggHeap, roots: &[Value]) -> Result<AggRemap, AggError> {
         let reachable = self.reachable_staged_nodes(roots);
         let remap = AggRemap::from_reachable(self.base_len, base.len_u32(), &reachable)?;
         for root in roots {
             let _ = remap.remap_value(root)?;
         }
 
-        for (idx, node) in self.staged.nodes.iter().enumerate() {
+        for (idx, mut node) in self.staged.nodes.into_iter().enumerate() {
             if !reachable[idx] {
                 continue;
             }
 
-            let mut remapped = node.clone();
-            remap.remap_values_in_place(remapped.values_mut())?;
-            let _ = base.push(remapped);
+            remap.remap_values_in_place(node.values_mut())?;
+            let _ = base.push(node);
         }
 
         Ok(remap)
@@ -709,6 +710,7 @@ mod tests {
         let roots = vec![Value::Agg(AggHandle(base_len + 1))];
 
         let remap_a = delta
+            .clone()
             .merge_into(&mut base_a, &roots)
             .expect("merge should succeed");
         let remap_b = delta
