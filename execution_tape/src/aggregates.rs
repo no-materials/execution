@@ -26,6 +26,8 @@ pub enum AggError {
     OutOfBounds,
     /// Struct field count mismatch.
     BadArity,
+    /// Aggregate handle arithmetic overflow.
+    HandleOverflow,
 }
 
 impl fmt::Display for AggError {
@@ -35,6 +37,7 @@ impl fmt::Display for AggError {
             Self::WrongKind => write!(f, "aggregate kind mismatch"),
             Self::OutOfBounds => write!(f, "index out of bounds"),
             Self::BadArity => write!(f, "arity mismatch"),
+            Self::HandleOverflow => write!(f, "aggregate handle overflow"),
         }
     }
 }
@@ -143,10 +146,9 @@ impl AggDelta {
     ///
     /// Handles that appear staged-encoded but resolve outside this delta's staged range are treated
     /// as unresolved and left unchanged by the returned remap.
-    #[must_use]
-    pub fn merge_into(&self, base: &mut AggHeap, roots: &[Value]) -> AggRemap {
+    pub fn merge_into(&self, base: &mut AggHeap, roots: &[Value]) -> Result<AggRemap, AggError> {
         let reachable = self.reachable_staged_nodes(roots);
-        let remap = AggRemap::from_reachable(self.base_len, base.len_u32(), &reachable);
+        let remap = AggRemap::from_reachable(self.base_len, base.len_u32(), &reachable)?;
 
         for (idx, node) in self.staged.nodes.iter().enumerate() {
             if !reachable[idx] {
@@ -158,7 +160,7 @@ impl AggDelta {
             let _ = base.push(remapped);
         }
 
-        remap
+        Ok(remap)
     }
 
     fn reachable_staged_nodes(&self, roots: &[Value]) -> Vec<bool> {
@@ -219,22 +221,34 @@ pub struct AggRemap {
 }
 
 impl AggRemap {
-    fn from_reachable(base_len: u32, base_start_len: u32, reachable: &[bool]) -> Self {
+    fn from_reachable(
+        base_len: u32,
+        base_start_len: u32,
+        reachable: &[bool],
+    ) -> Result<Self, AggError> {
+        let reachable_count = reachable.iter().filter(|&&r| r).count();
+        let reachable_count_u32 =
+            u32::try_from(reachable_count).map_err(|_| AggError::HandleOverflow)?;
+        let _ = base_start_len
+            .checked_add(reachable_count_u32)
+            .ok_or(AggError::HandleOverflow)?;
+
         let mut staged_to_base = vec![None; reachable.len()];
-        let mut next = base_start_len;
+        let mut assigned = 0_u32;
 
         for (idx, is_reachable) in reachable.iter().copied().enumerate() {
             if !is_reachable {
                 continue;
             }
-            staged_to_base[idx] = Some(AggHandle(next));
-            next = next.saturating_add(1);
+            let mapped = base_start_len + assigned;
+            staged_to_base[idx] = Some(AggHandle(mapped));
+            assigned = assigned.checked_add(1).ok_or(AggError::HandleOverflow)?;
         }
 
-        Self {
+        Ok(Self {
             base_len,
             staged_to_base,
-        }
+        })
     }
 
     /// Remaps one value from staged/base snapshot space to merged-base space.
@@ -304,7 +318,7 @@ impl<'a> AggOverlay<'a> {
 
     /// Allocates a tuple in staged storage and returns a staged-encoded handle.
     #[must_use]
-    pub fn tuple_new(&mut self, values: Vec<Value>) -> AggHandle {
+    pub fn tuple_new(&mut self, values: Vec<Value>) -> Result<AggHandle, AggError> {
         let local = self.staged.tuple_new(values);
         self.encode_staged_handle(local)
     }
@@ -327,7 +341,11 @@ impl<'a> AggOverlay<'a> {
 
     /// Allocates a struct in staged storage and returns a staged-encoded handle.
     #[must_use]
-    pub fn struct_new(&mut self, type_id: TypeId, values: Vec<Value>) -> AggHandle {
+    pub fn struct_new(
+        &mut self,
+        type_id: TypeId,
+        values: Vec<Value>,
+    ) -> Result<AggHandle, AggError> {
         let local = self.staged.struct_new(type_id, values);
         self.encode_staged_handle(local)
     }
@@ -350,7 +368,11 @@ impl<'a> AggOverlay<'a> {
 
     /// Allocates an array in staged storage and returns a staged-encoded handle.
     #[must_use]
-    pub fn array_new(&mut self, elem_type_id: ElemTypeId, values: Vec<Value>) -> AggHandle {
+    pub fn array_new(
+        &mut self,
+        elem_type_id: ElemTypeId,
+        values: Vec<Value>,
+    ) -> Result<AggHandle, AggError> {
         let local = self.staged.array_new(elem_type_id, values);
         self.encode_staged_handle(local)
     }
@@ -381,12 +403,12 @@ impl<'a> AggOverlay<'a> {
     }
 
     #[inline]
-    fn encode_staged_handle(&self, local: AggHandle) -> AggHandle {
-        // Saturating arithmetic preserves the staged-range invariant (`>= base_len`) even when
-        // indices approach the u32 handle ceiling.
-        let encoded = self.base_len.saturating_add(local.0);
-        debug_assert!(encoded >= self.base_len);
-        AggHandle(encoded)
+    fn encode_staged_handle(&self, local: AggHandle) -> Result<AggHandle, AggError> {
+        let encoded = self
+            .base_len
+            .checked_add(local.0)
+            .ok_or(AggError::HandleOverflow)?;
+        Ok(AggHandle(encoded))
     }
 }
 
@@ -585,8 +607,12 @@ mod tests {
         let mut staged = AggHeap::new();
 
         let mut overlay = AggOverlay::new(&base, base_len, &mut staged);
-        let staged_tuple = overlay.tuple_new(vec![Value::I64(22)]);
-        let staged_array = overlay.array_new(ElemTypeId(4), vec![Value::U64(9)]);
+        let staged_tuple = overlay
+            .tuple_new(vec![Value::I64(22)])
+            .expect("tuple alloc should succeed");
+        let staged_array = overlay
+            .array_new(ElemTypeId(4), vec![Value::U64(9)])
+            .expect("array alloc should succeed");
 
         assert!(staged_tuple.0 >= base_len);
         assert!(staged_array.0 >= base_len);
@@ -605,7 +631,9 @@ mod tests {
         let mut staged = AggHeap::new();
         let mut overlay = AggOverlay::new(&base, base_len, &mut staged);
 
-        let staged_struct = overlay.struct_new(TypeId(12), vec![Value::I64(33)]);
+        let staged_struct = overlay
+            .struct_new(TypeId(12), vec![Value::I64(33)])
+            .expect("struct alloc should succeed");
 
         assert_eq!(overlay.struct_field_count(base_struct), Ok(2));
         assert_eq!(overlay.struct_get(base_struct, 1), Ok(Value::I64(8)));
@@ -635,12 +663,28 @@ mod tests {
         let mut staged = AggHeap::new();
         let mut overlay = AggOverlay::new(&base, base_len, &mut staged);
 
-        let h0 = overlay.tuple_new(vec![]);
-        let h1 = overlay.tuple_new(vec![]);
+        let h0 = overlay.tuple_new(vec![]).expect("alloc should succeed");
+        let h1 = overlay.tuple_new(vec![]).expect("alloc should succeed");
 
         assert_eq!(h0.0, base_len);
         assert_eq!(h1.0, base_len + 1);
         assert_eq!(overlay.base_len(), base_len);
+    }
+
+    #[test]
+    fn overlay_staged_handle_encoding_overflow_returns_error() {
+        let base = AggHeap::new();
+        let mut staged = AggHeap::new();
+        let mut overlay = AggOverlay::new(&base, u32::MAX, &mut staged);
+
+        let first = overlay
+            .tuple_new(vec![Value::I64(1)])
+            .expect("first staged allocation should fit at u32::MAX");
+        assert_eq!(first, AggHandle(u32::MAX));
+        assert_eq!(overlay.tuple_len(first), Ok(1));
+
+        let second = overlay.tuple_new(vec![Value::I64(2)]);
+        assert_eq!(second, Err(AggError::HandleOverflow));
     }
 
     #[test]
@@ -657,8 +701,12 @@ mod tests {
             .array_new(ElemTypeId(9), vec![Value::Agg(AggHandle(base_len))]);
         let roots = vec![Value::Agg(AggHandle(base_len + 1))];
 
-        let remap_a = delta.merge_into(&mut base_a, &roots);
-        let remap_b = delta.merge_into(&mut base_b, &roots);
+        let remap_a = delta
+            .merge_into(&mut base_a, &roots)
+            .expect("merge should succeed");
+        let remap_b = delta
+            .merge_into(&mut base_b, &roots)
+            .expect("merge should succeed");
 
         assert_eq!(remap_a, remap_b);
         let mapped_root_a = agg_handle(remap_a.remap_value(&roots[0]));
@@ -683,7 +731,9 @@ mod tests {
             .tuple_new(vec![Value::Agg(AggHandle(base_len))]);
         let roots = vec![Value::Agg(AggHandle(base_len + 1))];
 
-        let remap = delta.merge_into(&mut base, &roots);
+        let remap = delta
+            .merge_into(&mut base, &roots)
+            .expect("merge should succeed");
         let mapped_root = agg_handle(remap.remap_value(&roots[0]));
         assert_eq!(mapped_root, AggHandle(1));
         assert_eq!(base.tuple_get(mapped_root, 0), Ok(Value::Agg(AggHandle(0))));
@@ -703,7 +753,9 @@ mod tests {
             .tuple_new(vec![Value::Agg(AggHandle(base_len))]);
         let roots = vec![Value::Agg(AggHandle(base_len + 2))];
 
-        let remap = delta.merge_into(&mut base, &roots);
+        let remap = delta
+            .merge_into(&mut base, &roots)
+            .expect("merge should succeed");
         let mapped_root = agg_handle(remap.remap_value(&roots[0]));
 
         assert_eq!(base.len_u32(), 2);
@@ -725,7 +777,9 @@ mod tests {
         let _ = delta.staged_mut().tuple_new(vec![Value::I64(8)]);
 
         let malformed = Value::Agg(AggHandle(base_len + 10));
-        let remap = delta.merge_into(&mut base, core::slice::from_ref(&malformed));
+        let remap = delta
+            .merge_into(&mut base, core::slice::from_ref(&malformed))
+            .expect("merge should succeed with unresolved roots");
         assert_eq!(base.len_u32(), base_len);
         assert_eq!(remap.remap_value(&malformed), malformed);
     }
@@ -737,7 +791,9 @@ mod tests {
         let _ = delta.staged_mut().tuple_new(vec![Value::I64(44)]);
         let root = Value::Agg(AggHandle(u32::MAX));
 
-        let remap = delta.merge_into(&mut base, core::slice::from_ref(&root));
+        let remap = delta
+            .merge_into(&mut base, core::slice::from_ref(&root))
+            .expect("merge should succeed at u32 max decode boundary");
         let mut remapped_values = vec![root.clone(), Value::I64(9)];
         remap.remap_values_in_place(&mut remapped_values);
 
@@ -745,6 +801,12 @@ mod tests {
         assert_eq!(remapped_values[0], Value::Agg(AggHandle(0)));
         assert_eq!(remapped_values[1], Value::I64(9));
         assert_eq!(base.tuple_get(AggHandle(0), 0), Ok(Value::I64(44)));
+    }
+
+    #[test]
+    fn remap_overflow_with_multiple_reachable_nodes_returns_error() {
+        let remap = AggRemap::from_reachable(0, u32::MAX, &[true, true]);
+        assert_eq!(remap, Err(AggError::HandleOverflow));
     }
 
     #[test]
@@ -765,7 +827,9 @@ mod tests {
             Value::Agg(AggHandle(base_len)),
         ];
 
-        let remap = delta.merge_into(&mut base, &outputs);
+        let remap = delta
+            .merge_into(&mut base, &outputs)
+            .expect("merge should succeed");
         let mut remapped = outputs.clone();
         remap.remap_values_in_place(&mut remapped);
 
