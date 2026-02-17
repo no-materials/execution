@@ -746,4 +746,45 @@ mod tests {
         assert_eq!(remapped_values[1], Value::I64(9));
         assert_eq!(base.tuple_get(AggHandle(0), 0), Ok(Value::I64(44)));
     }
+
+    #[test]
+    fn remapped_outputs_do_not_contain_staged_handles() {
+        let mut base = AggHeap::new();
+        let _ = base.tuple_new(vec![Value::I64(100)]);
+        let base_len = base.len_u32();
+
+        let mut delta = AggDelta::new(base_len);
+        let _ = delta.staged_mut().tuple_new(vec![Value::I64(1)]);
+        let _ = delta
+            .staged_mut()
+            .tuple_new(vec![Value::Agg(AggHandle(base_len))]);
+
+        let outputs = vec![
+            Value::Agg(AggHandle(0)),
+            Value::Agg(AggHandle(base_len + 1)),
+            Value::Agg(AggHandle(base_len)),
+        ];
+
+        let remap = delta.merge_into(&mut base, &outputs);
+        let mut remapped = outputs.clone();
+        remap.remap_values_in_place(&mut remapped);
+
+        let merged_len = base.len_u32();
+        for value in &remapped {
+            if let Value::Agg(handle) = value {
+                assert!(
+                    handle.0 < merged_len,
+                    "remapped output handle {} must be in merged base domain < {}",
+                    handle.0,
+                    merged_len
+                );
+            }
+        }
+
+        let remapped_root = agg_handle(remapped[1].clone());
+        assert_eq!(
+            base.tuple_get(remapped_root, 0),
+            Ok(Value::Agg(agg_handle(remapped[2].clone())))
+        );
+    }
 }
