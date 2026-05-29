@@ -179,7 +179,14 @@ impl AggDelta {
             }
 
             remap.remap_values_in_place(node.values_mut())?;
-            let _ = base.push(node);
+            let pushed = base.push(node);
+            // push and from_reachable assign this base handle independently; they agree only
+            // because reachable nodes are appended in staged-index order.
+            debug_assert_eq!(
+                Some(pushed),
+                remap.staged_to_base[idx],
+                "push/remap handle assignment desynced"
+            );
         }
 
         Ok(remap)
