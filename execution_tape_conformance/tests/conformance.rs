@@ -8,7 +8,8 @@ use execution_tape::asm::{Asm, FunctionSig, ProgramBuilder};
 use execution_tape::host::{AccessSink, Host, HostError, HostSig, SigHash, ValueRef};
 use execution_tape::opcode::Opcode;
 use execution_tape::program::{
-    Const, FunctionDef, HostSymbol, Program, StructTypeDef, TypeTableDef, ValueType,
+    ByteRange, CallSigEntry, Const, FunctionDef, HostSymbol, Program, StructTypeDef, TypeTableDef,
+    ValueType,
 };
 use execution_tape::trace::TraceMask;
 use execution_tape::value::Decimal;
@@ -45,8 +46,8 @@ fn verify_owned(program: Program) -> execution_tape::verifier::VerifiedProgram {
 }
 
 #[test]
-fn golden_minimal_program_bytes_v0_0_1() {
-    let p = Program::new(
+fn golden_program_bytes_v0_0_1() {
+    let mut p = Program::new(
         vec![],
         vec![],
         vec![],
@@ -60,7 +61,24 @@ fn golden_minimal_program_bytes_v0_0_1() {
         }],
     );
 
-    // This test is intentionally strict: it locks in the container encoding for a minimal program
+    // Append one optional call sig so the golden pins the call_sigs section's bytes, not just roundtrip.
+    let args_off = u32::try_from(p.value_types.len()).unwrap();
+    p.value_types
+        .extend_from_slice(&[ValueType::I64, ValueType::Bool]);
+    let rets_off = u32::try_from(p.value_types.len()).unwrap();
+    p.value_types.push(ValueType::U64);
+    p.call_sigs.push(CallSigEntry {
+        args: ByteRange {
+            offset: args_off,
+            len: 2,
+        },
+        rets: ByteRange {
+            offset: rets_off,
+            len: 1,
+        },
+    });
+
+    // Intentionally strict: locks in the container encoding (minimal program + call_sigs section)
     // as a regression signal for format changes.
     let expected: &[u8] = &[
         // magic "EXTAPE\0\0"
@@ -122,6 +140,15 @@ fn golden_minimal_program_bytes_v0_0_1() {
         0x08,
         0x01,
         0x00,
+        // call_sigs: tag=10, len=6, payload=[count=1, arg_count=2, I64=0x02, Bool=0x01, ret_count=1, U64=0x03]
+        0x0a,
+        0x06,
+        0x01,
+        0x02,
+        0x02,
+        0x01,
+        0x01,
+        0x03,
     ];
     let bytes = p.encode();
     assert_eq!(bytes, expected);
@@ -693,6 +720,112 @@ fn roundtrip_verify_run_host_call() {
         .run(&back, FuncId(0), &[], TraceMask::NONE, None)
         .unwrap();
     assert_eq!(out, vec![Value::I64(9)]);
+}
+
+#[test]
+fn roundtrip_verify_run_call_indirect_via_func_value() {
+    let mut pb = ProgramBuilder::new();
+    let caller = pb.declare_function(FunctionSig {
+        arg_types: vec![],
+        ret_types: vec![ValueType::I64],
+    });
+    let callee = pb.declare_function(FunctionSig {
+        arg_types: vec![ValueType::I64],
+        ret_types: vec![ValueType::I64],
+    });
+    let call_sig = pb.call_sig(&[ValueType::I64], &[ValueType::I64]);
+
+    let mut callee_asm = Asm::new();
+    callee_asm.ret(0, &[1]);
+    pb.define_function(callee, callee_asm).unwrap();
+
+    let mut caller_asm = Asm::new();
+    caller_asm.const_func(1, callee);
+    caller_asm.const_i64(2, 9);
+    caller_asm.call_indirect(0, call_sig, 1, 0, &[2], &[3]);
+    caller_asm.ret(0, &[3]);
+    pb.define_function(caller, caller_asm).unwrap();
+
+    let p = pb.build_verified().unwrap();
+    let bytes = p.program().encode();
+    let back = Program::decode(&bytes).unwrap();
+    let back = verify_owned(back);
+
+    let mut vm = Vm::new(TestHost, Limits::default());
+    let out = vm.run(&back, caller, &[], TraceMask::NONE, None).unwrap();
+    assert_eq!(out, vec![Value::I64(9)]);
+}
+
+#[test]
+fn roundtrip_verify_run_call_indirect_via_closure_with_env_injection() {
+    let mut pb = ProgramBuilder::new();
+    let caller = pb.declare_function(FunctionSig {
+        arg_types: vec![],
+        ret_types: vec![ValueType::U64],
+    });
+    let callee = pb.declare_function(FunctionSig {
+        arg_types: vec![ValueType::Agg, ValueType::U64],
+        ret_types: vec![ValueType::U64],
+    });
+    let call_sig = pb.call_sig(&[ValueType::U64], &[ValueType::U64]);
+
+    let mut callee_asm = Asm::new();
+    callee_asm.tuple_len(3, 1);
+    callee_asm.u64_add(4, 3, 2);
+    callee_asm.ret(0, &[4]);
+    pb.define_function(callee, callee_asm).unwrap();
+
+    let mut caller_asm = Asm::new();
+    caller_asm.const_i64(1, 40);
+    caller_asm.tuple_new(2, &[1]);
+    caller_asm.const_func(3, callee);
+    caller_asm.closure_new(4, 3, 2);
+    caller_asm.const_u64(5, 41);
+    caller_asm.call_indirect(0, call_sig, 4, 0, &[5], &[6]);
+    caller_asm.ret(0, &[6]);
+    pb.define_function(caller, caller_asm).unwrap();
+
+    let p = pb.build_verified().unwrap();
+    let mut vm = Vm::new(TestHost, Limits::default());
+    let out = vm.run(&p, caller, &[], TraceMask::NONE, None).unwrap();
+    assert_eq!(out, vec![Value::U64(42)]);
+}
+
+#[test]
+fn vm_traps_call_indirect_on_signature_mismatch() {
+    let mut pb = ProgramBuilder::new();
+    let caller = pb.declare_function(FunctionSig {
+        arg_types: vec![],
+        ret_types: vec![ValueType::I64],
+    });
+    let callee = pb.declare_function(FunctionSig {
+        arg_types: vec![ValueType::U64],
+        ret_types: vec![ValueType::I64],
+    });
+    let call_sig = pb.call_sig(&[ValueType::I64], &[ValueType::I64]);
+
+    let mut callee_asm = Asm::new();
+    callee_asm.const_i64(2, 99);
+    callee_asm.ret(0, &[2]);
+    pb.define_function(callee, callee_asm).unwrap();
+
+    let mut caller_asm = Asm::new();
+    caller_asm.const_func(1, callee);
+    caller_asm.const_i64(2, 7);
+    caller_asm.call_indirect(0, call_sig, 1, 0, &[2], &[3]);
+    caller_asm.ret(0, &[3]);
+    pb.define_function(caller, caller_asm).unwrap();
+
+    let p = pb.build_verified().unwrap();
+    let mut vm = Vm::new(TestHost, Limits::default());
+    let err = vm.run(&p, caller, &[], TraceMask::NONE, None).unwrap_err();
+    assert_eq!(
+        err.trap,
+        Trap::TypeMismatch {
+            expected: ValueType::I64,
+            actual: ValueType::U64,
+        }
+    );
 }
 
 #[test]
