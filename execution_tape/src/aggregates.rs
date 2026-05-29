@@ -140,17 +140,6 @@ impl AggDelta {
         self.base_len
     }
 
-    /// Returns staged aggregate storage.
-    #[must_use]
-    pub fn staged(&self) -> &AggHeap {
-        &self.staged
-    }
-
-    /// Returns mutable staged aggregate storage.
-    pub fn staged_mut(&mut self) -> &mut AggHeap {
-        &mut self.staged
-    }
-
     /// Borrows `base` (read-only) and this delta's staged heap as an [`AggOverlay`].
     ///
     /// The overlay encodes handles with the delta's own `base_len`, so they decode in
@@ -591,6 +580,20 @@ mod tests {
         }
     }
 
+    /// Builds a delta snapshotting `base` and stages aggregates through an overlay, returning the
+    /// delta plus whatever `build` returns (typically the staged-encoded handles it allocated).
+    fn staged_delta<R>(
+        base: &AggHeap,
+        build: impl FnOnce(&mut AggOverlay<'_>) -> R,
+    ) -> (AggDelta, R) {
+        let mut delta = AggDelta::for_base(base);
+        let result = {
+            let mut overlay = delta.overlay(base);
+            build(&mut overlay)
+        };
+        (delta, result)
+    }
+
     #[test]
     fn tuple_roundtrip() {
         let mut h = AggHeap::new();
@@ -751,14 +754,13 @@ mod tests {
         let mut base_a = AggHeap::new();
         let _ = base_a.tuple_new(vec![Value::I64(7)]);
         let mut base_b = base_a.clone();
-        let base_len = base_a.len_u32();
 
-        let mut delta = AggDelta::new(base_len);
-        let _ = delta.staged_mut().tuple_new(vec![Value::I64(1)]);
-        let _ = delta
-            .staged_mut()
-            .array_new(ElemTypeId(9), vec![Value::Agg(AggHandle(base_len))]);
-        let roots = vec![Value::Agg(AggHandle(base_len + 1))];
+        let (delta, root) = staged_delta(&base_a, |o| {
+            let leaf = o.tuple_new(vec![Value::I64(1)]).expect("alloc");
+            o.array_new(ElemTypeId(9), vec![Value::Agg(leaf)])
+                .expect("alloc")
+        });
+        let roots = vec![Value::Agg(root)];
 
         let remap_a = delta
             .clone()
@@ -782,14 +784,12 @@ mod tests {
     #[test]
     fn delta_merge_rewrites_nested_staged_handles() {
         let mut base = AggHeap::new();
-        let base_len = base.len_u32();
-        let mut delta = AggDelta::new(base_len);
 
-        let _ = delta.staged_mut().tuple_new(vec![Value::I64(3)]);
-        let _ = delta
-            .staged_mut()
-            .tuple_new(vec![Value::Agg(AggHandle(base_len))]);
-        let roots = vec![Value::Agg(AggHandle(base_len + 1))];
+        let (delta, root) = staged_delta(&base, |o| {
+            let leaf = o.tuple_new(vec![Value::I64(3)]).expect("alloc");
+            o.tuple_new(vec![Value::Agg(leaf)]).expect("alloc")
+        });
+        let roots = vec![Value::Agg(root)];
 
         let remap = delta
             .merge_into(&mut base, &roots)
@@ -803,15 +803,13 @@ mod tests {
     #[test]
     fn delta_merge_filters_unreachable_staged_nodes() {
         let mut base = AggHeap::new();
-        let base_len = base.len_u32();
-        let mut delta = AggDelta::new(base_len);
 
-        let _ = delta.staged_mut().tuple_new(vec![Value::I64(10)]);
-        let _ = delta.staged_mut().tuple_new(vec![Value::I64(20)]);
-        let _ = delta
-            .staged_mut()
-            .tuple_new(vec![Value::Agg(AggHandle(base_len))]);
-        let roots = vec![Value::Agg(AggHandle(base_len + 2))];
+        let (delta, root) = staged_delta(&base, |o| {
+            let keep = o.tuple_new(vec![Value::I64(10)]).expect("alloc");
+            let _unreachable = o.tuple_new(vec![Value::I64(20)]).expect("alloc");
+            o.tuple_new(vec![Value::Agg(keep)]).expect("alloc")
+        });
+        let roots = vec![Value::Agg(root)];
 
         let remap = delta
             .merge_into(&mut base, &roots)
@@ -833,8 +831,8 @@ mod tests {
         let mut base = AggHeap::new();
         let _ = base.tuple_new(vec![Value::I64(7)]);
         let base_len = base.len_u32();
-        let mut delta = AggDelta::new(base_len);
-        let _ = delta.staged_mut().tuple_new(vec![Value::I64(8)]);
+        let (delta, _filler) =
+            staged_delta(&base, |o| o.tuple_new(vec![Value::I64(8)]).expect("alloc"));
 
         let malformed = Value::Agg(AggHandle(base_len + 10));
         let remap = delta.merge_into(&mut base, core::slice::from_ref(&malformed));
@@ -846,11 +844,11 @@ mod tests {
     fn delta_merge_rejects_reachable_node_with_unresolved_nested_staged_handle() {
         let mut base = AggHeap::new();
         let base_len = base.len_u32();
-        let mut delta = AggDelta::new(base_len);
-        let _ = delta
-            .staged_mut()
-            .tuple_new(vec![Value::Agg(AggHandle(base_len + 99))]);
-        let roots = vec![Value::Agg(AggHandle(base_len))];
+        let (delta, root) = staged_delta(&base, |o| {
+            o.tuple_new(vec![Value::Agg(AggHandle(base_len + 99))])
+                .expect("alloc")
+        });
+        let roots = vec![Value::Agg(root)];
 
         let remap = delta.merge_into(&mut base, &roots);
         assert_eq!(remap, Err(AggError::UnresolvedStagedHandle));
@@ -865,14 +863,18 @@ mod tests {
         let base_len = base.len_u32();
         assert_eq!(base_len, 0);
 
-        let mut delta = AggDelta::new(base_len);
-        let _ = delta
-            .staged_mut()
-            .tuple_new(vec![Value::Agg(AggHandle(base_len + 1))]);
-        let _ = delta
-            .staged_mut()
-            .tuple_new(vec![Value::Agg(AggHandle(base_len + 99))]);
-        let roots = vec![Value::Agg(AggHandle(base_len))];
+        let (delta, node0) = staged_delta(&base, |o| {
+            // node 0 forward-references node 1, which isn't allocated yet, so this handle is
+            // necessarily hand-encoded; node 1 then references an out-of-range handle.
+            let n0 = o
+                .tuple_new(vec![Value::Agg(AggHandle(base_len + 1))])
+                .expect("alloc");
+            let _n1 = o
+                .tuple_new(vec![Value::Agg(AggHandle(base_len + 99))])
+                .expect("alloc");
+            n0
+        });
+        let roots = vec![Value::Agg(node0)];
 
         let result = delta.merge_into(&mut base, &roots);
 
@@ -883,8 +885,14 @@ mod tests {
     #[test]
     fn delta_merge_handles_u32_max_boundary_for_staged_decode() {
         let mut base = AggHeap::new();
-        let mut delta = AggDelta::new(u32::MAX);
-        let _ = delta.staged_mut().tuple_new(vec![Value::I64(44)]);
+        // A u32::MAX base snapshot can't come from a real base (so `for_base`/`overlay` can't
+        // build it); construct the boundary delta directly.
+        let mut staged = AggHeap::new();
+        let _ = staged.tuple_new(vec![Value::I64(44)]);
+        let delta = AggDelta {
+            base_len: u32::MAX,
+            staged,
+        };
         let root = Value::Agg(AggHandle(u32::MAX));
 
         let remap = delta
@@ -911,18 +919,17 @@ mod tests {
     fn remapped_outputs_do_not_contain_staged_handles() {
         let mut base = AggHeap::new();
         let _ = base.tuple_new(vec![Value::I64(100)]);
-        let base_len = base.len_u32();
 
-        let mut delta = AggDelta::new(base_len);
-        let _ = delta.staged_mut().tuple_new(vec![Value::I64(1)]);
-        let _ = delta
-            .staged_mut()
-            .tuple_new(vec![Value::Agg(AggHandle(base_len))]);
+        let (delta, (leaf, root)) = staged_delta(&base, |o| {
+            let leaf = o.tuple_new(vec![Value::I64(1)]).expect("alloc");
+            let root = o.tuple_new(vec![Value::Agg(leaf)]).expect("alloc");
+            (leaf, root)
+        });
 
         let outputs = vec![
-            Value::Agg(AggHandle(0)),
-            Value::Agg(AggHandle(base_len + 1)),
-            Value::Agg(AggHandle(base_len)),
+            Value::Agg(AggHandle(0)), // base node 0
+            Value::Agg(root),         // staged node referencing the leaf
+            Value::Agg(leaf),         // staged leaf
         ];
 
         let remap = delta
