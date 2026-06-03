@@ -22,21 +22,18 @@ use crate::report::RunDetailReport;
 pub(crate) trait Dispatcher<H: Host> {
     /// Executes `plan` without producing traced reporting.
     ///
-    /// Returns the drained scheduling buffer so callers can reuse its capacity.
-    fn dispatch(
-        &mut self,
-        graph: &mut ExecutionGraph<H>,
-        plan: RunPlan,
-    ) -> Result<Vec<NodeId>, GraphError>;
+    /// The drained scheduling buffer is returned to the graph's scratch workspace (for capacity
+    /// reuse on the next planning pass) on every exit path, success or error.
+    fn dispatch(&mut self, graph: &mut ExecutionGraph<H>, plan: RunPlan) -> Result<(), GraphError>;
 
     /// Executes `plan` and returns traced reporting if available.
     ///
-    /// Returns both the drained scheduling buffer (for capacity reuse) and the assembled report.
+    /// Like [`Dispatcher::dispatch`], the scheduling buffer is reclaimed on every exit path.
     fn dispatch_with_report(
         &mut self,
         graph: &mut ExecutionGraph<H>,
         plan: RunPlan,
-    ) -> Result<(Vec<NodeId>, RunDetailReport), GraphError>;
+    ) -> Result<RunDetailReport, GraphError>;
 }
 
 /// Serial in-thread dispatcher used by default.
@@ -52,17 +49,25 @@ impl<H: Host> Dispatcher<H> for InlineDispatcher {
         &mut self,
         graph: &mut ExecutionGraph<H>,
         mut plan: RunPlan,
-    ) -> Result<Vec<NodeId>, GraphError> {
+    ) -> Result<(), GraphError> {
         // Keep scope as part of the dispatch contract even before scope-specific strategies exist.
         match plan.scope() {
             PlanScope::All | PlanScope::WithinDependenciesOf(_) => {}
         }
 
-        let mut to_run: Vec<NodeId> = plan.take_nodes();
-        for node in to_run.drain(..) {
-            graph.execute_scheduled_node(node)?;
+        let to_run: Vec<NodeId> = plan.take_nodes();
+        for i in 0..to_run.len() {
+            if let Err(e) = graph.execute_scheduled_node(to_run[i]) {
+                // Fail-fast: this node errored and `to_run[i + 1..]` never ran. Their dirty marks
+                // were cleared when the plan was drained, so re-mark them to keep that pending
+                // work recoverable on the next run instead of silently dropping it.
+                graph.remark_scheduled_dirty(&to_run[i..]);
+                graph.reclaim_schedule_buffer(to_run);
+                return Err(e);
+            }
         }
-        Ok(to_run)
+        graph.reclaim_schedule_buffer(to_run);
+        Ok(())
     }
 
     #[inline]
@@ -70,7 +75,7 @@ impl<H: Host> Dispatcher<H> for InlineDispatcher {
         &mut self,
         graph: &mut ExecutionGraph<H>,
         mut plan: RunPlan,
-    ) -> Result<(Vec<NodeId>, RunDetailReport), GraphError> {
+    ) -> Result<RunDetailReport, GraphError> {
         // Keep scope as part of the dispatch contract even before scope-specific strategies exist.
         match plan.scope() {
             PlanScope::All | PlanScope::WithinDependenciesOf(_) => {}
@@ -78,10 +83,19 @@ impl<H: Host> Dispatcher<H> for InlineDispatcher {
 
         let mut trace = plan.take_trace();
         let mut report = RunDetailReport::default();
-        let mut to_run: Vec<NodeId> = plan.take_nodes();
+        let to_run: Vec<NodeId> = plan.take_nodes();
 
-        for node in to_run.drain(..) {
-            graph.execute_scheduled_node(node)?;
+        for i in 0..to_run.len() {
+            let node = to_run[i];
+            if let Err(e) = graph.execute_scheduled_node(node) {
+                // Fail-fast: this node errored and `to_run[i + 1..]` never ran. Re-mark them so
+                // their drained dirty state is not silently lost (see `dispatch`). NOTE: the
+                // partial report accumulated so far is dropped here; surfacing it on error is a
+                // follow-up.
+                graph.remark_scheduled_dirty(&to_run[i..]);
+                graph.reclaim_schedule_buffer(to_run);
+                return Err(e);
+            }
             if let Some(t) = trace.as_mut()
                 && let Some(r) = t.take_report_for(node)
             {
@@ -89,7 +103,8 @@ impl<H: Host> Dispatcher<H> for InlineDispatcher {
             }
         }
 
-        Ok((to_run, report))
+        graph.reclaim_schedule_buffer(to_run);
+        Ok(report)
     }
 }
 
@@ -222,7 +237,7 @@ mod tests {
         let plan =
             RunPlan::all(vec![n1, n0]).with_trace(RunPlanTrace::from_node_reports(node_reports));
         let mut dispatcher = InlineDispatcher;
-        let (_buf, report) = dispatcher
+        let report = dispatcher
             .dispatch_with_report(&mut g, plan)
             .expect("dispatch should succeed");
 
@@ -241,7 +256,7 @@ mod tests {
         let trace = RunPlanTrace::from_node_reports(vec![]);
 
         let mut dispatcher = InlineDispatcher;
-        let (_buf, out) = dispatcher
+        let out = dispatcher
             .dispatch_with_report(&mut g, RunPlan::all(vec![node]).with_trace(trace))
             .expect("dispatch should succeed");
 
