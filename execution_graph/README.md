@@ -52,8 +52,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let program = Arc::new(builder.build_verified()?);
 
     let mut graph = ExecutionGraph::new(NoHost, Limits::default());
-    let node = graph.add_node(program, entry, vec!["x".into()]);
-    graph.set_input_value(node, "x", Value::I64(41));
+    let node = graph.add_node(program, entry, vec!["x".into()])?;
+    graph.set_input_value(node, "x", Value::I64(41))?;
 
     let summary = graph.run_all()?;
     assert_eq!(summary.executed_nodes, 1);

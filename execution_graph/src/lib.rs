@@ -86,3 +86,13 @@ mod tape_access;
 pub use access::{Access, AccessLog, HostOpId, NodeId, ResourceKey};
 pub use graph::{ExecutionGraph, GraphError, NodeOutputs};
 pub use report::{NodeRunDetail, ReportDetailMask, RunDetailReport, RunSummary};
+
+/// Compiles the `README.md` code blocks as doctests so the Quick Start cannot
+/// drift out of sync with the API.
+///
+/// This item exists only under `cfg(doctest)` (set while `cargo test --doc`
+/// extracts doctests), so it is never built into the crate and never appears in
+/// the rendered documentation.
+#[cfg(doctest)]
+#[doc = include_str!("../README.md")]
+struct ReadmeDoctests;
